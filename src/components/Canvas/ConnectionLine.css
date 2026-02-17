@@ -1,0 +1,51 @@
+.connection-line {
+  pointer-events: stroke;
+}
+
+.connection-path-bg {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  cursor: pointer;
+}
+
+.connection-path {
+  fill: none;
+  stroke: #999;
+  stroke-width: 2;
+  pointer-events: none;
+  transition: stroke 0.2s ease;
+}
+
+.connection-line.highlighted .connection-path {
+  stroke: #4CAF50;
+  stroke-width: 3;
+  stroke-dasharray: 5, 5;
+  animation: dash 0.5s linear infinite;
+}
+
+.connection-line.temp .connection-path {
+  stroke: #2196F3;
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+}
+
+.connection-arrow {
+  fill: #999;
+  pointer-events: none;
+  transition: fill 0.2s ease;
+}
+
+.connection-line.highlighted .connection-arrow {
+  fill: #4CAF50;
+}
+
+.connection-line.temp .connection-arrow {
+  fill: #2196F3;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}

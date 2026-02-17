@@ -1,0 +1,269 @@
+.node-properties-panel {
+  width: 300px;
+  background-color: white;
+  border-left: 1px solid #e0e0e0;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 20px;
+  animation: slideIn 0.2s ease-out;
+  transform-origin: right center;
+}
+
+.node-properties-panel.closing {
+  animation: slideOut 0.2s ease-in forwards;
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.node-properties-panel-hidden {
+  display: none;
+}
+
+.empty-state {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.panel-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.delete-button:hover {
+  background-color: #ffebee;
+}
+
+.panel-section {
+  margin-bottom: 24px;
+}
+
+.panel-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.panel-hint {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.node-type-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.node-type-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.panel-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.panel-input:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.panel-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.2s ease;
+}
+
+.panel-textarea:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background-color: #e3f2fd;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #1976d2;
+}
+
+.tag-chip {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.item-chip-readonly {
+  background-color: #f5f5f5;
+  color: #666;
+  cursor: default;
+}
+
+.item-chip button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.item-chip button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.add-item-form {
+  display: flex;
+  gap: 8px;
+}
+
+.add-item-form .panel-input {
+  flex: 1;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon .panel-input {
+  padding-right: 40px;
+}
+
+.input-icon-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.input-icon-button:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.input-icon-button img {
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.input-icon-button:hover img {
+  opacity: 1;
+}
+
+.add-button {
+  width: 40px;
+  height: 40px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 24px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.add-button:hover {
+  background-color: #1976d2;
+}
+
+.dependencies-count {
+  padding: 10px 12px;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #666;
+}

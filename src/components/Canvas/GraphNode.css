@@ -1,0 +1,137 @@
+.graph-node {
+  position: absolute;
+  width: 200px;
+  min-height: 100px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: move;
+  user-select: none;
+  z-index: 2;
+  border: 2px solid transparent;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.graph-node:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.graph-node.selected {
+  border-color: #2196F3;
+  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
+}
+
+.graph-node.disconnect-mode {
+  cursor: grab;
+}
+
+.graph-node.disconnect-mode:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+
+.graph-node.connecting {
+  cursor: crosshair;
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.node-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.node-type-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.node-content {
+  padding: 12px;
+}
+
+.node-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+}
+
+.node-description {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.node-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.node-item-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background-color: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-radius: 10px;
+  font-size: 11px;
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.node-connection-point {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid #666;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  pointer-events: all;
+}
+
+.node-connection-point:hover,
+.node-connection-point.hover {
+  width: 16px;
+  height: 16px;
+  border-color: #2196F3;
+  background-color: #2196F3;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2);
+}
+
+.node-connection-point.input {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.node-connection-point.input:hover,
+.node-connection-point.input.hover {
+  top: -8px;
+}
+
+.node-connection-point.output {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.node-connection-point.output:hover,
+.node-connection-point.output.hover {
+  bottom: -8px;
+}
