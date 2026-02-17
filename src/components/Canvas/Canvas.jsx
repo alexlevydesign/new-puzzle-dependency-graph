@@ -38,8 +38,24 @@ const Canvas = ({
         setCommandPressed(true);
       }
       if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        setSpacePressed(true);
+        // Don't prevent default if user is typing in an input or textarea
+        const isTyping = e.target.tagName === 'INPUT' || 
+                        e.target.tagName === 'TEXTAREA' || 
+                        e.target.isContentEditable;
+        if (!isTyping) {
+          e.preventDefault();
+          setSpacePressed(true);
+        }
+      }
+      // Delete selected node with Backspace or Delete key
+      if ((e.code === 'Backspace' || e.code === 'Delete') && selectedNode) {
+        const isTyping = e.target.tagName === 'INPUT' || 
+                        e.target.tagName === 'TEXTAREA' || 
+                        e.target.isContentEditable;
+        if (!isTyping) {
+          e.preventDefault();
+          onNodeDelete(selectedNode.id);
+        }
       }
     };
 
@@ -60,7 +76,7 @@ const Canvas = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [selectedNode, onNodeDelete]);
 
   const handleCanvasDrop = (e) => {
     e.preventDefault();
@@ -249,10 +265,54 @@ const Canvas = ({
 
   const handleNodeDrag = (node, position) => {
     onNodeMove(node.id, { position });
+    
+    // Check if dragging over a connection line
+    const nodeCenterX = position.x + 100;
+    const nodeCenterY = position.y + 50;
+    
+    let hoveredConnection = null;
+    for (const conn of connections) {
+      // Skip connections that involve this node
+      if (conn.from === node.id || conn.to === node.id) continue;
+      
+      const fromNode = nodes.find(n => n.id === conn.from);
+      const toNode = nodes.find(n => n.id === conn.to);
+      
+      if (fromNode && toNode) {
+        // Get actual node heights
+        const fromNodeElement = document.querySelector(`[data-node-id="${fromNode.id}"]`);
+        const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
+        
+        const distance = distanceToLine(
+          nodeCenterX,
+          nodeCenterY,
+          fromNode.position.x + 100,
+          fromNode.position.y + fromNodeHeight,
+          toNode.position.x + 100,
+          toNode.position.y
+        );
+
+        if (distance < 30) {
+          hoveredConnection = conn;
+          break;
+        }
+      }
+    }
+    
+    setInsertionPreview(hoveredConnection);
   };
 
   const handleNodeDragEnd = () => {
+    // If we're hovering over a connection, insert the node between
+    if (insertionPreview && draggedNode) {
+      onInsertNodeBetween(
+        draggedNode.id,
+        insertionPreview.from,
+        insertionPreview.to
+      );
+    }
     setDraggedNode(null);
+    setInsertionPreview(null);
   };
 
   const handleConnectionStart = (nodeId, position, isFromInput = false) => {

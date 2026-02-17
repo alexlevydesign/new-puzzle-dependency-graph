@@ -7,6 +7,7 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
   const [description, setDescription] = useState('');
   const [newItem, setNewItem] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [tags, setTags] = useState([]);
   const [isClosing, setIsClosing] = useState(false);
   const [prevNode, setPrevNode] = useState(null);
 
@@ -14,6 +15,7 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
     if (node) {
       setTitle(node.title || '');
       setDescription(node.description || '');
+      setTags(node.tags || []);
       setIsClosing(false);
       setPrevNode(node);
     } else if (prevNode && !node) {
@@ -112,8 +114,10 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
 
   const handleAddTag = () => {
     if (newTag.trim() && node) {
+      const updatedTags = [...tags, newTag.trim()];
+      setTags(updatedTags);
       onUpdateNode(node.id, {
-        tags: [...(node.tags || []), newTag.trim()]
+        tags: updatedTags
       });
       setNewTag('');
     }
@@ -121,8 +125,9 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
 
   const handleRemoveTag = (index) => {
     if (node) {
-      const newTags = node.tags.filter((_, i) => i !== index);
-      onUpdateNode(node.id, { tags: newTags });
+      const updatedTags = tags.filter((_, i) => i !== index);
+      setTags(updatedTags);
+      onUpdateNode(node.id, { tags: updatedTags });
     }
   };
 
@@ -178,7 +183,7 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
           <label className="panel-label">Item Obtained</label>
           <p className="panel-hint">This item will be available in all future connected nodes</p>
           <div className="items-list">
-            {displayNode.items?.map((item, index) => (
+            {(node?.items || displayNode.items || []).map((item, index) => (
               <div key={index} className="item-chip">
                 <span>{item}</span>
               </div>
@@ -203,14 +208,6 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
 
       <div className="panel-section">
         <label className="panel-label">Tags</label>
-        <div className="items-list">
-          {displayNode.tags?.map((tag, index) => (
-            <div key={index} className="item-chip tag-chip">
-              <span>{tag}</span>
-              <button onClick={() => handleRemoveTag(index)}>×</button>
-            </div>
-          ))}
-        </div>
         <div className="add-item-form input-with-icon">
           <input
             type="text"
@@ -223,6 +220,16 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
           <button className="input-icon-button" onClick={handleAddTag} title="Add tag">
             <img src="/icons/add.svg" alt="Add" />
           </button>
+        </div>
+        <div className="items-list">
+          {tags.map((tag, index) => (
+            <div key={index} className="item-chip tag-chip">
+              <span>{tag}</span>
+              <button onClick={() => handleRemoveTag(index)} className="remove-button">
+                <img src="/icons/close.svg" alt="Remove" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
