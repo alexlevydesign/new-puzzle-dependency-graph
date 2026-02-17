@@ -12,6 +12,7 @@
   color: white;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 10;
@@ -26,6 +27,41 @@
 .app-title-accent {
   font-style: italic;
   font-weight: 400;
+}
+
+.app-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.header-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-button img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
+
+.header-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.header-button:active {
+  transform: scale(0.98);
 }
 
 .app-content {
