@@ -3,7 +3,7 @@ import './Sidebar.css';
 import { NODE_TYPES, NODE_CONFIG } from '../../constants/nodeTypes.jsx';
 import NodeTypeButton from './NodeTypeButton.jsx';
 
-const Sidebar = ({ onNodeTypeSelect }) => {
+const Sidebar = ({ onNodeTypeSelect, onUndo, onRedo, canUndo, canRedo }) => {
   const handleDragStart = (e, nodeType) => {
     e.dataTransfer.setData('nodeType', nodeType);
     e.dataTransfer.effectAllowed = 'copy';
@@ -11,6 +11,36 @@ const Sidebar = ({ onNodeTypeSelect }) => {
 
   return (
     <aside className="sidebar">
+      <div className="sidebar-actions">
+          <button className="option-button sidebar-action-button">Options
+
+            <img src="/icons/options.svg" alt="Options" />
+          </button>
+        <div className="sidebar-action-buttons">
+          <button 
+            className="sidebar-action-button" 
+            onClick={onUndo} 
+            disabled={!canUndo}
+            title="Undo (Cmd+Z)"
+          >
+            <img src="/icons/undo.svg" alt="Undo" />
+          </button>
+
+          <div className="vertical-rule">
+
+          </div>
+
+          <button 
+            className="sidebar-action-button" 
+            onClick={onRedo} 
+            disabled={!canRedo}
+            title="Redo (Cmd+Shift+Z)"
+          >
+            <img src="/icons/redo.svg" alt="Redo" />
+          </button>
+        </div>
+      </div>
+
       <div className="sidebar-section">
         <h3 className="sidebar-section-title">Action nodes</h3>
         <div className="sidebar-node-list">

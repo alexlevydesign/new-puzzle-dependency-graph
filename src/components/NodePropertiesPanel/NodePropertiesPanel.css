@@ -1,6 +1,6 @@
 .node-properties-panel {
   width: 300px;
-  background-color: white;
+  background-color: #FCFCFC;
   border-left: 1px solid #e0e0e0;
   overflow-y: auto;
   flex-shrink: 0;

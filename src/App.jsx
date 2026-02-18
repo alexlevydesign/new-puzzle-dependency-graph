@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar/Sidebar.jsx';
 import Canvas from './components/Canvas/Canvas.jsx';
@@ -10,6 +10,95 @@ function App() {
   const [connections, setConnections] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
   const [nextNodeId, setNextNodeId] = useState(1);
+  
+  // History management for undo/redo
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const isUndoRedoAction = useRef(false);
+
+  // Save state to history whenever nodes or connections change
+  useEffect(() => {
+    if (isUndoRedoAction.current) {
+      isUndoRedoAction.current = false;
+      return;
+    }
+
+    const currentState = {
+      nodes,
+      connections,
+      nextNodeId,
+      selectedNode
+    };
+
+    setHistory(prev => {
+      // Remove any future history if we're not at the end
+      const newHistory = prev.slice(0, historyIndex + 1);
+      // Add current state
+      newHistory.push(currentState);
+      // Limit history to 50 states to prevent memory issues
+      if (newHistory.length > 50) {
+        newHistory.shift();
+        return newHistory;
+      }
+      return newHistory;
+    });
+
+    setHistoryIndex(prev => {
+      const newIndex = prev + 1;
+      return newIndex >= 50 ? 49 : newIndex;
+    });
+  }, [nodes, connections, nextNodeId, selectedNode]);
+
+  const undo = useCallback(() => {
+    if (historyIndex <= 0) return;
+
+    isUndoRedoAction.current = true;
+    const prevState = history[historyIndex - 1];
+    setNodes(prevState.nodes);
+    setConnections(prevState.connections);
+    setNextNodeId(prevState.nextNodeId);
+    setSelectedNode(prevState.selectedNode);
+    setHistoryIndex(prev => prev - 1);
+  }, [history, historyIndex]);
+
+  const redo = useCallback(() => {
+    if (historyIndex >= history.length - 1) return;
+
+    isUndoRedoAction.current = true;
+    const nextState = history[historyIndex + 1];
+    setNodes(nextState.nodes);
+    setConnections(nextState.connections);
+    setNextNodeId(nextState.nextNodeId);
+    setSelectedNode(nextState.selectedNode);
+    setHistoryIndex(prev => prev + 1);
+  }, [history, historyIndex]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Check if user is typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Cmd+Z (Mac) or Ctrl+Z (Windows/Linux) for undo
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      // Cmd+Shift+Z (Mac) or Ctrl+Shift+Z (Windows/Linux) for redo
+      else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
 
   const addNode = useCallback((type, position) => {
     const newNode = {
@@ -145,7 +234,13 @@ function App() {
         </div>
       </header>
       <div className="app-content">
-        <Sidebar onNodeTypeSelect={addNode} />
+        <Sidebar 
+          onNodeTypeSelect={addNode}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+        />
         <Canvas
           nodes={nodes}
           connections={connections}
