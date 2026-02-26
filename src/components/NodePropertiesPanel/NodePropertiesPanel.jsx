@@ -236,8 +236,15 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
       {dependencies.length > 0 && (
         <div className="panel-section">
           <label className="panel-label">Dependencies</label>
-          <div className="dependencies-count">
-            {dependencies.length} node{dependencies.length !== 1 ? 's' : ''}
+          <div className="items-list">
+            {dependencies.map((depId) => {
+              const depNode = nodes?.find(n => n.id === depId);
+              return (
+                <div key={depId} className="item-chip dependency-chip">
+                  <span>{depNode ? depNode.title : `Node ${depId}`}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

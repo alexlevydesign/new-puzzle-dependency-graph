@@ -14,7 +14,8 @@ const Canvas = ({
   onNodeDelete,
   onConnectionCreate,
   onConnectionRemove,
-  onInsertNodeBetween
+  onInsertNodeBetween,
+  onCollapseSidebar
 }) => {
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
@@ -388,6 +389,7 @@ const Canvas = ({
       onMouseDown={handleCanvasMouseDown}
       onMouseMove={handleCanvasMouseMove}
       onMouseUp={handleCanvasMouseUp}
+      onMouseEnter={onCollapseSidebar}
       style={{ 
         cursor: isPanning ? 'grabbing' : 'grab'
       }}

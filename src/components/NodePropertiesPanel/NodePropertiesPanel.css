@@ -70,7 +70,7 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.3s ease;
 }
 
 .delete-button:hover {
@@ -123,7 +123,7 @@
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.3s ease;
 }
 
 .panel-input:focus {
@@ -140,7 +140,7 @@
   font-family: inherit;
   resize: vertical;
   min-height: 80px;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.3s ease;
 }
 
 .panel-textarea:focus {
@@ -177,6 +177,12 @@
   cursor: default;
 }
 
+.dependency-chip {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+}
+
 .item-chip button {
   background: none;
   border: none;
@@ -191,7 +197,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.3s ease;
 }
 
 .item-chip button img {
@@ -238,7 +244,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.3s ease;
 }
 
 .input-icon-button:hover {
@@ -249,7 +255,7 @@
   width: 20px;
   height: 20px;
   opacity: 0.6;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease;
 }
 
 .input-icon-button:hover img {
@@ -265,7 +271,7 @@
   border-radius: 6px;
   font-size: 24px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.3s ease;
   flex-shrink: 0;
 }
 

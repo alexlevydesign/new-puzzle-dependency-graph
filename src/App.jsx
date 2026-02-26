@@ -10,6 +10,7 @@ function App() {
   const [connections, setConnections] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
   const [nextNodeId, setNextNodeId] = useState(1);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
   // History management for undo/redo
   const [history, setHistory] = useState([]);
@@ -219,9 +220,29 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="app-title">
-          Puzz<span className="app-title-accent">Flow</span>
-        </h1>
+        <div className="app-header-left">
+          <div className="app-header-actions">
+            <button 
+              className="header-button header-icon-button" 
+              onClick={undo} 
+              disabled={!canUndo}
+              title="Undo (Cmd+Z)"
+            >
+              <img src="/icons/undo.svg" alt="Undo" />
+            </button>
+            <button 
+              className="header-button header-icon-button" 
+              onClick={redo} 
+              disabled={!canRedo}
+              title="Redo (Cmd+Shift+Z)"
+            >
+              <img src="/icons/redo.svg" alt="Redo" />
+            </button>
+          </div>
+          <h1 className="app-title">
+            Puzz<span className="app-title-accent">Flow</span>
+          </h1>
+        </div>
         <div className="app-header-actions">
           <button className="header-button" onClick={importData} title="Import project">
             <img src="/icons/upload.svg" alt="Import" />
@@ -236,10 +257,8 @@ function App() {
       <div className="app-content">
         <Sidebar 
           onNodeTypeSelect={addNode}
-          onUndo={undo}
-          onRedo={redo}
-          canUndo={canUndo}
-          canRedo={canRedo}
+          isExpanded={isSidebarExpanded}
+          onExpand={() => setIsSidebarExpanded(true)}
         />
         <Canvas
           nodes={nodes}
@@ -252,6 +271,7 @@ function App() {
           onConnectionCreate={addConnection}
           onConnectionRemove={removeConnection}
           onInsertNodeBetween={insertNodeBetween}
+          onCollapseSidebar={() => setIsSidebarExpanded(false)}
         />
         <NodePropertiesPanel
           node={selectedNode}

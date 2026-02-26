@@ -4,11 +4,19 @@
   min-height: 100px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  cursor: move;
+  cursor: grab;
   user-select: none;
   z-index: 2;
   border: 2px solid transparent;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.graph-node:active {
+  cursor: grabbing;
+}
+
+.graph-node:active {
+  cursor: grabbing;
 }
 
 .graph-node:hover {
@@ -18,15 +26,6 @@
 .graph-node.selected {
   border-color: #2196F3;
   box-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
-}
-
-.graph-node.disconnect-mode {
-  cursor: grab;
-}
-
-.graph-node.disconnect-mode:active {
-  cursor: grabbing;
-  opacity: 0.7;
 }
 
 .graph-node.connecting {
@@ -48,7 +47,7 @@
 }
 
 .node-type-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #000;
   text-transform: uppercase;
@@ -101,8 +100,12 @@
   border: 2px solid #666;
   cursor: pointer;
   z-index: 10;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   pointer-events: all;
+}
+
+.graph-node.connecting .node-connection-point {
+  cursor: crosshair;
 }
 
 .node-connection-point:hover,

@@ -14,7 +14,7 @@
   stroke: #999;
   stroke-width: 2;
   pointer-events: none;
-  transition: stroke 0.2s ease;
+  transition: stroke 0.3s ease;
 }
 
 .connection-line.highlighted .connection-path {
@@ -33,7 +33,7 @@
 .connection-arrow {
   fill: #999;
   pointer-events: none;
-  transition: fill 0.2s ease;
+  transition: fill 0.3s ease;
 }
 
 .connection-line.highlighted .connection-arrow {

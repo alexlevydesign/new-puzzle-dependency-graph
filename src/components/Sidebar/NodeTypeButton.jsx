@@ -9,7 +9,7 @@ const NodeTypeButton = ({ type, config, onDragStart }) => {
       onDragStart={(e) => onDragStart(e, type)}
       style={{ backgroundColor: config.color, border: config.borderColor }}
     >
-      <img src={config.icon} alt={config.label} className="node-type-icon" />
+      <img src={config.icon} alt={config.label} className="sidebar-node-type-icon" />
       <span className="node-type-label">{config.label}</span>
     </div>
   );
