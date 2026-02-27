@@ -6,6 +6,8 @@ const GraphNode = ({
   node,
   isSelected,
   isCommandPressed,
+  isDragging: isDraggingProp, // Prop from Canvas to indicate this node is being dragged
+  layoutMode,
   zoom,
   pan,
   onSelect,
@@ -17,9 +19,14 @@ const GraphNode = ({
   onConnectionEnd
 }) => {
   const nodeRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingLocal, setIsDraggingLocal] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const dragStartPos = useRef({ x: 0, y: 0 });
+  const nodeStartPos = useRef({ x: 0, y: 0 }); // Store node's initial position when drag starts
+
+  // Use prop if provided, otherwise use local state
+  const isDragging = isDraggingProp !== undefined ? isDraggingProp : isDraggingLocal;
 
   const config = NODE_CONFIG[node.type];
 
@@ -28,17 +35,21 @@ const GraphNode = ({
     
     e.stopPropagation();
     onSelect(node);
-    setIsDragging(true);
+    setIsDraggingLocal(true);
+    setDragOffset({ x: 0, y: 0 }); // Reset offset
     
-    // Store the offset in canvas coordinate space
-    // Account for zoom and pan when calculating the drag start position
+    // Store the mouse start position and node's initial position for dragging
     const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
     const canvasX = (e.clientX - canvasRect.left - pan.x) / zoom;
     const canvasY = (e.clientY - canvasRect.top - pan.y) / zoom;
     
     dragStartPos.current = {
-      x: canvasX - node.position.x,
-      y: canvasY - node.position.y
+      x: canvasX,
+      y: canvasY
+    };
+    nodeStartPos.current = {
+      x: node.position.x,
+      y: node.position.y
     };
     onDragStart(node, e);
   };
@@ -51,9 +62,15 @@ const GraphNode = ({
       const canvasX = (e.clientX - canvasRect.left - pan.x) / zoom;
       const canvasY = (e.clientY - canvasRect.top - pan.y) / zoom;
       
-      const newX = canvasX - dragStartPos.current.x;
-      const newY = canvasY - dragStartPos.current.y;
-      onDrag(node, { x: Math.max(0, newX), y: Math.max(0, newY) });
+      // Calculate visual offset for transform
+      const offsetX = canvasX - dragStartPos.current.x;
+      const offsetY = canvasY - dragStartPos.current.y;
+      setDragOffset({ x: offsetX, y: offsetY });
+      
+      // Calculate the dragged position using the INITIAL node position (not current)
+      const draggedX = nodeStartPos.current.x + offsetX;
+      const draggedY = nodeStartPos.current.y + offsetY;
+      onDrag(node, { x: Math.max(0, draggedX), y: Math.max(0, draggedY) });
     } else if (isConnecting) {
       // Get the canvas container rect
       const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
@@ -66,7 +83,8 @@ const GraphNode = ({
 
   const handleMouseUp = () => {
     if (isDragging) {
-      setIsDragging(false);
+      setIsDraggingLocal(false);
+      setDragOffset({ x: 0, y: 0 }); // Reset offset when drag ends
       onDragEnd();
     }
     if (isConnecting) {
@@ -137,11 +155,14 @@ const GraphNode = ({
     <div
       ref={nodeRef}
       data-node-id={node.id}
-      className={`graph-node ${isSelected ? 'selected' : ''} ${isCommandPressed ? 'disconnect-mode' : ''} ${isConnecting ? 'connecting' : ''}`}
+      className={`graph-node ${isSelected ? 'selected' : ''} ${isCommandPressed ? 'disconnect-mode' : ''} ${isConnecting ? 'connecting' : ''} ${isDragging ? 'dragging' : ''}`}
       style={{
         left: node.position.x,
         top: node.position.y,
-        backgroundColor: config.color
+        backgroundColor: config.color,
+        opacity: isDragging ? 0.5 : 1,
+        transform: (isDragging && layoutMode === 'structured') ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : 'none',
+        transition: (isDragging || layoutMode === 'structured') ? 'none' : 'left 0.3s ease, top 0.3s ease'
       }}
       onMouseDown={handleMouseDown}
     >

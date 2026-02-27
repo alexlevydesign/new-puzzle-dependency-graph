@@ -3,26 +3,32 @@ import './Canvas.css';
 import GraphNode from './GraphNode.jsx';
 import ConnectionLine from './ConnectionLine.jsx';
 import { NODE_CONFIG } from '../../constants/nodeTypes.jsx';
+import { findInsertionIndex } from '../../utils/autoLayout.js';
 
 const Canvas = ({
   nodes,
   connections,
   selectedNode,
+  layoutMode,
   onNodeSelect,
   onAddNode,
   onNodeMove,
+  onNodeReorder,
   onNodeDelete,
   onConnectionCreate,
   onConnectionRemove,
   onInsertNodeBetween,
-  onCollapseSidebar
+  onCollapseSidebar,
+  isDraggingNodeRef // Ref to track dragging for history management
 }) => {
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
   const [draggedNode, setDraggedNode] = useState(null);
+  const [draggedNodePosition, setDraggedNodePosition] = useState(null); // Track visual position during drag
   const [connectionStart, setConnectionStart] = useState(null);
   const [tempConnectionEnd, setTempConnectionEnd] = useState(null);
   const [insertionPreview, setInsertionPreview] = useState(null);
+  const targetIndexRef = useRef(null); // Track target index for reordering
   const [commandPressed, setCommandPressed] = useState(false);
   
   // Pan and Zoom state
@@ -256,64 +262,52 @@ const Canvas = ({
   };
 
   const handleNodeDragStart = (node, e) => {
-    if (commandPressed) {
-      // Disconnect mode - find and remove connections
-      const incomingConns = connections.filter(c => c.to === node.id);
-      incomingConns.forEach(conn => onConnectionRemove(conn.from, conn.to));
-    }
+    // Allow dragging for reordering (structured) or positioning (freeform)
     setDraggedNode(node);
+    setDraggedNodePosition(null); // Reset at start
+    
+    // Set flag to prevent history updates during drag
+    if (isDraggingNodeRef) {
+      isDraggingNodeRef.current = true;
+    }
   };
 
   const handleNodeDrag = (node, position) => {
-    onNodeMove(node.id, { position });
+    // Store the visual position of the dragged node
+    setDraggedNodePosition(position);
     
-    // Check if dragging over a connection line
-    const nodeCenterX = position.x + 100;
-    const nodeCenterY = position.y + 50;
-    
-    let hoveredConnection = null;
-    for (const conn of connections) {
-      // Skip connections that involve this node
-      if (conn.from === node.id || conn.to === node.id) continue;
+    if (layoutMode === 'structured') {
+      // Structured mode: Calculate insertion index for reordering
+      const targetIndex = findInsertionIndex(node.id, position.y, nodes);
       
-      const fromNode = nodes.find(n => n.id === conn.from);
-      const toNode = nodes.find(n => n.id === conn.to);
-      
-      if (fromNode && toNode) {
-        // Get actual node heights
-        const fromNodeElement = document.querySelector(`[data-node-id="${fromNode.id}"]`);
-        const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
-        
-        const distance = distanceToLine(
-          nodeCenterX,
-          nodeCenterY,
-          fromNode.position.x + 100,
-          fromNode.position.y + fromNodeHeight,
-          toNode.position.x + 100,
-          toNode.position.y
-        );
-
-        if (distance < 30) {
-          hoveredConnection = conn;
-          break;
-        }
-      }
+      // Store in both state (for visual) and ref (for reliable access in dragEnd)
+      targetIndexRef.current = targetIndex;
+      setInsertionPreview(targetIndex);
+    } else {
+      // Freeform mode: Update position directly during drag
+      onNodeMove(node.id, { position });
     }
-    
-    setInsertionPreview(hoveredConnection);
   };
 
   const handleNodeDragEnd = () => {
-    // If we're hovering over a connection, insert the node between
-    if (insertionPreview && draggedNode) {
-      onInsertNodeBetween(
-        draggedNode.id,
-        insertionPreview.from,
-        insertionPreview.to
-      );
+    if (layoutMode === 'structured') {
+      // Use the ref value for reordering
+      if (targetIndexRef.current !== null && draggedNode) {
+        onNodeReorder(draggedNode.id, targetIndexRef.current);
+      }
     }
+    // In freeform mode, position was already updated during drag
+    
+    // Clear dragged state
     setDraggedNode(null);
+    setDraggedNodePosition(null);
     setInsertionPreview(null);
+    targetIndexRef.current = null;
+    
+    // Clear the dragging flag and allow history to save
+    if (isDraggingNodeRef) {
+      isDraggingNodeRef.current = false;
+    }
   };
 
   const handleConnectionStart = (nodeId, position, isFromInput = false) => {
@@ -403,7 +397,8 @@ const Canvas = ({
         }}
       >
         <svg className="canvas-connections" style={{ overflow: 'visible' }}>
-        {connections.map((conn, index) => {
+        {/* Hide connections only during structured mode reordering */}
+        {!(draggedNode && layoutMode === 'structured') && connections.map((conn, index) => {
           const fromNode = nodes.find(n => n.id === conn.from);
           const toNode = nodes.find(n => n.id === conn.to);
           
@@ -416,6 +411,24 @@ const Canvas = ({
           const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
           const toNodeHeight = toNodeElement ? toNodeElement.offsetHeight : 100;
 
+          // Use visual position for dragged node, state position otherwise
+          let fromX = fromNode.position.x;
+          let fromY = fromNode.position.y;
+          let toX = toNode.position.x;
+          let toY = toNode.position.y;
+
+          // If this node is being dragged, use its visual drag position
+          if (draggedNode && draggedNodePosition) {
+            if (fromNode.id === draggedNode.id) {
+              fromX = draggedNodePosition.x;
+              fromY = draggedNodePosition.y;
+            }
+            if (toNode.id === draggedNode.id) {
+              toX = draggedNodePosition.x;
+              toY = draggedNodePosition.y;
+            }
+          }
+
           const isHighlighted = insertionPreview?.from === conn.from && 
                                insertionPreview?.to === conn.to;
 
@@ -423,12 +436,12 @@ const Canvas = ({
             <ConnectionLine
               key={`${conn.from}-${conn.to}-${index}`}
               from={{
-                x: fromNode.position.x + 100,
-                y: fromNode.position.y + fromNodeHeight
+                x: fromX + 100,
+                y: fromY + fromNodeHeight
               }}
               to={{
-                x: toNode.position.x + 100,
-                y: toNode.position.y
+                x: toX + 100,
+                y: toY
               }}
               isHighlighted={isHighlighted}
             />
@@ -443,12 +456,33 @@ const Canvas = ({
         )}
       </svg>
 
+      {/* Insertion indicator line */}
+      {insertionPreview !== null && draggedNode && (
+        <div
+          className="insertion-indicator"
+          style={{
+            left: 400,
+            top: 100 + (insertionPreview * 180) - 10,
+            width: 200,
+            height: 4,
+            backgroundColor: '#2196F3',
+            borderRadius: 2,
+            position: 'absolute',
+            pointerEvents: 'none',
+            zIndex: 1000,
+            boxShadow: '0 0 8px rgba(33, 150, 243, 0.5)'
+          }}
+        />
+      )}
+
       {nodes.map(node => (
         <GraphNode
           key={node.id}
           node={node}
           isSelected={selectedNode?.id === node.id}
           isCommandPressed={commandPressed}
+          isDragging={draggedNode?.id === node.id}
+          layoutMode={layoutMode}
           zoom={zoom}
           pan={pan}
           onSelect={onNodeSelect}

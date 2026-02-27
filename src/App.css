@@ -8,31 +8,56 @@
 
 .app-header {
   height: 60px;
-  background-color: #000000;
-  color: white;
+  background-color: #FCFCFC;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   z-index: 10;
 }
 
 .app-header-left {
   display: flex;
   align-items: center;
-  gap: 20px;
+  flex: 1;
+}
+
+.app-header-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 0 0 auto;
+}
+
+.app-header-actions {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.header-control-group {
+  display: flex;
+  gap: 4px;
+  background-color: #f5f5f5;
+  padding: 4px;
+  border-radius: 8px;
 }
 
 .app-title {
   font-size: 28px;
   font-weight: 600;
   letter-spacing: -0.5px;
+  color: #333;
 }
 
 .app-title-accent {
   font-style: italic;
   font-weight: 400;
+  color: #666;
 }
 
 .app-header-actions {
@@ -45,31 +70,38 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
-  color: white;
+  color: #333;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .header-icon-button {
   padding: 8px;
   min-width: 36px;
   justify-content: center;
+  font-size: 18px;
 }
 
 .header-button img {
   width: 16px;
   height: 16px;
-  filter: brightness(0) invert(1);
+  opacity: 0.7;
 }
 
 .header-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: #e8e8e8;
+  border-color: #d0d0d0;
+}
+
+.header-button.active {
+  background-color: #e0e0e0;
+  border-color: #c0c0c0;
+  font-weight: 600;
 }
 
 .header-button:active {
@@ -79,12 +111,50 @@
 .header-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: #fafafa;
 }
 
 .header-button:disabled:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+  background-color: #fafafa;
+  border-color: #e0e0e0;
+}
+
+/* Mode Switcher */
+.mode-switcher {
+  display: flex;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.mode-switcher-button {
+  padding: 8px 20px;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mode-switcher-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.mode-switcher-button.active {
+  background-color: white;
+  color: #333;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mode-switcher-button:active {
+  transform: scale(0.98);
 }
 
 .app-content {

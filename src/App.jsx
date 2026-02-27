@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar/Sidebar.jsx';
 import Canvas from './components/Canvas/Canvas.jsx';
 import NodePropertiesPanel from './components/NodePropertiesPanel/NodePropertiesPanel.jsx';
 import { NODE_CONFIG } from './constants/nodeTypes.jsx';
+import { calculateAutoLayout, reorderNodes } from './utils/autoLayout.js';
 
 function App() {
   const [nodes, setNodes] = useState([]);
@@ -11,16 +12,23 @@ function App() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [nextNodeId, setNextNodeId] = useState(1);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [layoutMode, setLayoutMode] = useState('structured'); // 'structured' or 'freeform'
   
   // History management for undo/redo
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const isUndoRedoAction = useRef(false);
+  const isDraggingNode = useRef(false); // Track if a node is currently being dragged
 
   // Save state to history whenever nodes or connections change
   useEffect(() => {
     if (isUndoRedoAction.current) {
       isUndoRedoAction.current = false;
+      return;
+    }
+    
+    // Don't save history during node dragging in freeform mode
+    if (isDraggingNode.current) {
       return;
     }
 
@@ -74,7 +82,7 @@ function App() {
     setHistoryIndex(prev => prev + 1);
   }, [history, historyIndex]);
 
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts for undo/redo and node reordering
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Check if user is typing in an input field
@@ -92,14 +100,65 @@ function App() {
         e.preventDefault();
         redo();
       }
+      // Arrow Up: Move selected node up in the list
+      else if (e.key === 'ArrowUp' && selectedNode) {
+        e.preventDefault();
+        moveNodeInList(selectedNode.id, -1);
+      }
+      // Arrow Down: Move selected node down in the list
+      else if (e.key === 'ArrowDown' && selectedNode) {
+        e.preventDefault();
+        moveNodeInList(selectedNode.id, 1);
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, selectedNode, nodes]);
+
+  const moveNodeInList = useCallback((nodeId, direction) => {
+    const currentIndex = nodes.findIndex(n => n.id === nodeId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = currentIndex + direction;
+    
+    // Check bounds
+    if (targetIndex < 0 || targetIndex >= nodes.length) return;
+
+    // Reorder the nodes array
+    const reordered = reorderNodes(nodes, currentIndex, targetIndex);
+    setNodes(reordered);
+  }, [nodes]);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
+
+  // Auto-layout: Recalculate positions when entering structured mode or when structure changes
+  const nodeOrderKey = useMemo(() => nodes.map(n => n.id).join(','), [nodes]);
+  const connectionKey = useMemo(() => connections.map(c => `${c.from}-${c.to}`).join(','), [connections]);
+  
+  useEffect(() => {
+    if (nodes.length === 0) return;
+    if (layoutMode !== 'structured') return;
+
+    // Calculate new positions
+    const positions = calculateAutoLayout(nodes, connections);
+    
+    // Check if any positions actually changed
+    const hasChanges = nodes.some(node => {
+      const newPos = positions[node.id];
+      return newPos && (newPos.x !== node.position.x || newPos.y !== node.position.y);
+    });
+
+    if (hasChanges) {
+      // Update node positions without triggering history
+      isUndoRedoAction.current = true;
+      setNodes(prev => prev.map(node => ({
+        ...node,
+        position: positions[node.id] || node.position
+      })));
+    }
+  }, [layoutMode, nodeOrderKey, connectionKey]);
 
   const addNode = useCallback((type, position) => {
     const newNode = {
@@ -107,15 +166,215 @@ function App() {
       type,
       title: NODE_CONFIG[type].defaultTitle,
       description: '',
-      position,
+      position: position || { x: 0, y: 0 },
       items: [],
       tags: [],
       dependencies: []
     };
-    setNodes(prev => [...prev, newNode]);
+    
+    setNodes(prev => {
+      const newNodes = [...prev, newNode];
+      
+      // Auto-connect in structured mode based on position
+      if (layoutMode === 'structured' && position && prev.length > 0) {
+        const BRANCH_THRESHOLD = 100; // Horizontal distance to trigger branch creation
+        
+        // Check if this is a branch (significantly offset horizontally from main column)
+        const isOffsetHorizontally = Math.abs(position.x - 400) > BRANCH_THRESHOLD;
+        
+        if (isOffsetHorizontally) {
+          // BRANCH MODE: Create parallel branch from nearest node
+          // Find the node closest in Y position to branch from
+          let closestNodeIndex = 0;
+          let minDistance = Math.abs(position.y - prev[0].position.y);
+          
+          for (let i = 1; i < prev.length; i++) {
+            const distance = Math.abs(position.y - prev[i].position.y);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestNodeIndex = i;
+            }
+          }
+          
+          // Insert after the closest node
+          newNodes.splice(prev.length, 1); // Remove from end
+          newNodes.splice(closestNodeIndex + 1, 0, newNode); // Insert after closest
+          
+          // Create branch connection from closest node
+          setConnections(prevConn => {
+            const newConnections = [...prevConn];
+            newConnections.push({
+              from: prev[closestNodeIndex].id,
+              to: newNode.id
+            });
+            return newConnections;
+          });
+        } else {
+          // SEQUENTIAL MODE: Insert in sequence based on Y position
+          let insertIndex = prev.length; // Default to end
+          
+          for (let i = 0; i < prev.length; i++) {
+            // Use the bottom half of the node as the threshold
+            const nodeBottom = prev[i].position.y + 50; // Approximate middle of node (100px height)
+            
+            if (position.y < nodeBottom) {
+              insertIndex = i;
+              break;
+            }
+          }
+          
+          // Insert at the calculated position
+          newNodes.splice(prev.length, 1); // Remove from end
+          newNodes.splice(insertIndex, 0, newNode); // Insert at correct position
+          
+          // Auto-connect to neighbors
+          setConnections(prevConn => {
+            let newConnections = [...prevConn];
+            
+            // If inserting at the end
+            if (insertIndex === prev.length) {
+              // Connect last node to new node
+              if (prev.length > 0) {
+                newConnections.push({
+                  from: prev[prev.length - 1].id,
+                  to: newNode.id
+                });
+              }
+            }
+            // If inserting at the beginning
+            else if (insertIndex === 0) {
+              // Connect new node to first node
+              if (prev.length > 0) {
+                newConnections.push({
+                  from: newNode.id,
+                  to: prev[0].id
+                });
+              }
+            }
+            // If inserting in the middle
+            else {
+              const prevNodeId = prev[insertIndex - 1].id;
+              const nextNodeId = prev[insertIndex].id;
+              
+              // Remove connection between prev and next
+              newConnections = newConnections.filter(conn => 
+                !(conn.from === prevNodeId && conn.to === nextNodeId)
+              );
+              
+              // Add connections: prev -> new -> next
+              newConnections.push(
+                { from: prevNodeId, to: newNode.id },
+                { from: newNode.id, to: nextNodeId }
+              );
+            }
+            
+            return newConnections;
+          });
+        }
+      }
+      
+      return newNodes;
+    });
+    
     setNextNodeId(prev => prev + 1);
     return newNode;
-  }, [nextNodeId]);
+  }, [nextNodeId, layoutMode, connections, nodes]);
+
+  const reorderNode = useCallback((nodeId, newIndex) => {
+    const currentIndex = nodes.findIndex(n => n.id === nodeId);
+    if (currentIndex === -1 || currentIndex === newIndex) return;
+
+    const reordered = reorderNodes(nodes, currentIndex, newIndex);
+    setNodes(reordered);
+
+    // Update connections to maintain sequential chain based on new order
+    setConnections(prev => {
+      // Remove connections involving the moved node and its old neighbors
+      let filtered = prev.filter(conn => {
+        // Remove if the moved node is involved
+        if (conn.from === nodeId || conn.to === nodeId) return false;
+        
+        // Remove connection between old neighbors (they were connected through the moved node)
+        if (currentIndex > 0 && currentIndex < nodes.length - 1) {
+          const prevNode = nodes[currentIndex - 1];
+          const nextNode = nodes[currentIndex + 1];
+          if (conn.from === prevNode.id && conn.to === nextNode.id) return false;
+        }
+        
+        return true;
+      });
+      
+      const newConnections = [...filtered];
+      
+      // Rebuild connections based on new positions
+      // Connect previous neighbor to next neighbor at old position (if both exist)
+      if (currentIndex > 0 && currentIndex < nodes.length - 1) {
+        newConnections.push({
+          from: nodes[currentIndex - 1].id,
+          to: nodes[currentIndex + 1].id
+        });
+      }
+      
+      // Connect node to its new neighbors
+      if (newIndex > 0) {
+        newConnections.push({
+          from: reordered[newIndex - 1].id,
+          to: nodeId
+        });
+      }
+      
+      if (newIndex < reordered.length - 1) {
+        newConnections.push({
+          from: nodeId,
+          to: reordered[newIndex + 1].id
+        });
+      }
+      
+      // Remove the connection we just created between new neighbors (since moved node is now between them)
+      if (newIndex > 0 && newIndex < reordered.length - 1) {
+        return newConnections.filter(conn => 
+          !(conn.from === reordered[newIndex - 1].id && conn.to === reordered[newIndex + 1].id)
+        );
+      }
+      
+      return newConnections;
+    });
+  }, [nodes]);
+
+  const tidyUp = useCallback(() => {
+    // Build a map of connected nodes
+    const connectedNodeIds = new Set();
+    connections.forEach(conn => {
+      connectedNodeIds.add(conn.from);
+      connectedNodeIds.add(conn.to);
+    });
+
+    // Separate connected and disconnected nodes
+    const connectedNodes = nodes.filter(n => connectedNodeIds.has(n.id));
+    const disconnectedNodes = nodes.filter(n => !connectedNodeIds.has(n.id));
+
+    // Calculate layout for connected nodes (main column)
+    const connectedPositions = calculateAutoLayout(connectedNodes, connections);
+
+    // Calculate layout for disconnected nodes (side column)
+    const disconnectedPositions = {};
+    disconnectedNodes.forEach((node, index) => {
+      disconnectedPositions[node.id] = {
+        x: 700, // Offset to the right
+        y: 100 + (index * 180)
+      };
+    });
+
+    // Merge all positions
+    const allPositions = { ...connectedPositions, ...disconnectedPositions };
+
+    // Update all node positions
+    isUndoRedoAction.current = true;
+    setNodes(prev => prev.map(node => ({
+      ...node,
+      position: allPositions[node.id] || node.position
+    })));
+  }, [nodes, connections]);
 
   const updateNode = useCallback((nodeId, updates) => {
     setNodes(prev => prev.map(node => 
@@ -221,7 +480,14 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-left">
-          <div className="app-header-actions">
+          <h1 className="app-title">
+            Puzz<span className="app-title-accent">Flow</span>
+          </h1>
+        </div>
+        
+        <div className="app-header-center">
+          {/* Undo/Redo */}
+          <div className="header-control-group">
             <button 
               className="header-button header-icon-button" 
               onClick={undo} 
@@ -239,10 +505,37 @@ function App() {
               <img src="/icons/redo.svg" alt="Redo" />
             </button>
           </div>
-          <h1 className="app-title">
-            Puzz<span className="app-title-accent">Flow</span>
-          </h1>
+
+          {/* Mode Switcher */}
+          <div className="mode-switcher">
+            <button 
+              className={`mode-switcher-button ${layoutMode === 'structured' ? 'active' : ''}`}
+              onClick={() => setLayoutMode('structured')}
+              title="Structured mode - nodes auto-arrange vertically"
+            >
+              Structured
+            </button>
+            <button 
+              className={`mode-switcher-button ${layoutMode === 'freeform' ? 'active' : ''}`}
+              onClick={() => setLayoutMode('freeform')}
+              title="Freeform mode - drag nodes anywhere"
+            >
+              Freeform
+            </button>
+          </div>
+
+          {/* Tidy Up (only in freeform mode) */}
+          {layoutMode === 'freeform' && (
+            <button 
+              className="header-button header-icon-button"
+              onClick={tidyUp}
+              title="Tidy Up - organize nodes in structured layout"
+            >
+              🧹
+            </button>
+          )}
         </div>
+
         <div className="app-header-actions">
           <button className="header-button" onClick={importData} title="Import project">
             <img src="/icons/upload.svg" alt="Import" />
@@ -264,14 +557,17 @@ function App() {
           nodes={nodes}
           connections={connections}
           selectedNode={selectedNode}
+          layoutMode={layoutMode}
           onNodeSelect={setSelectedNode}
           onAddNode={addNode}
           onNodeMove={updateNode}
+          onNodeReorder={reorderNode}
           onNodeDelete={deleteNode}
           onConnectionCreate={addConnection}
           onConnectionRemove={removeConnection}
           onInsertNodeBetween={insertNodeBetween}
           onCollapseSidebar={() => setIsSidebarExpanded(false)}
+          isDraggingNodeRef={isDraggingNode}
         />
         <NodePropertiesPanel
           node={selectedNode}
