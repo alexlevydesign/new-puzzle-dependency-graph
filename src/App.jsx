@@ -6,16 +6,57 @@ import NodePropertiesPanel from './components/NodePropertiesPanel/NodeProperties
 import { NODE_CONFIG } from './constants/nodeTypes.jsx';
 
 function App() {
-  const [nodes, setNodes] = useState([]);
-  const [connections, setConnections] = useState([]);
+  // Load initial state from localStorage
+  const loadFromLocalStorage = () => {
+    try {
+      const saved = localStorage.getItem('puzzflow-state');
+      if (saved) {
+        const data = JSON.parse(saved);
+        return {
+          nodes: data.nodes || [],
+          connections: data.connections || [],
+          nextNodeId: data.nextNodeId || 1
+        };
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+    }
+    return {
+      nodes: [],
+      connections: [],
+      nextNodeId: 1
+    };
+  };
+
+  const initialState = loadFromLocalStorage();
+  
+  const [nodes, setNodes] = useState(initialState.nodes);
+  const [connections, setConnections] = useState(initialState.connections);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [nextNodeId, setNextNodeId] = useState(1);
+  const [nextNodeId, setNextNodeId] = useState(initialState.nextNodeId);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   
   // History management for undo/redo
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const isUndoRedoAction = useRef(false);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      const state = {
+        nodes,
+        connections,
+        nextNodeId,
+        version: '1.0',
+        lastSaved: new Date().toISOString()
+      };
+      localStorage.setItem('puzzflow-state', JSON.stringify(state));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, [nodes, connections, nextNodeId]);
 
   // Save state to history whenever nodes or connections change
   useEffect(() => {
@@ -203,6 +244,7 @@ function App() {
             setConnections(data.connections);
             setNextNodeId(data.nextNodeId);
             setSelectedNode(null);
+            // State will auto-save to localStorage via useEffect
             alert('Successfully imported puzzle flow!');
           } else {
             alert('Invalid file format. Please select a valid PuzzFlow export file.');
@@ -216,6 +258,35 @@ function App() {
     };
     input.click();
   }, []);
+
+  const clearCanvas = useCallback(() => {
+    if (nodes.length === 0 && connections.length === 0) {
+      return;
+    }
+    
+    if (window.confirm('Are you sure you want to clear the entire canvas? This cannot be undone.')) {
+      setNodes([]);
+      setConnections([]);
+      setNextNodeId(1);
+      setSelectedNode(null);
+      // Clear localStorage
+      localStorage.removeItem('puzzflow-state');
+    }
+  }, [nodes.length, connections.length]);
+
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showOptionsMenu && !e.target.closest('.options-menu-container')) {
+        setShowOptionsMenu(false);
+      }
+    };
+
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showOptionsMenu]);
 
   return (
     <div className="app">
@@ -252,6 +323,28 @@ function App() {
             <img src="/icons/download.svg" alt="Export" />
             <span>Export</span>
           </button>
+          <div className="options-menu-container">
+            <button 
+              className="header-button header-icon-button" 
+              onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+              title="Options"
+            >
+              <img src="/icons/options.svg" alt="Options" />
+            </button>
+            {showOptionsMenu && (
+              <div className="options-dropdown">
+                <button 
+                  className="options-menu-item" 
+                  onClick={() => {
+                    clearCanvas();
+                    setShowOptionsMenu(false);
+                  }}
+                >
+                  Clear Canvas
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       <div className="app-content">

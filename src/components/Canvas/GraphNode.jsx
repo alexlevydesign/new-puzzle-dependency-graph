@@ -20,8 +20,16 @@ const GraphNode = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
 
   const config = NODE_CONFIG[node.type];
+
+  // Update refs when zoom or pan changes
+  React.useEffect(() => {
+    zoomRef.current = zoom;
+    panRef.current = pan;
+  }, [zoom, pan]);
 
   const handleMouseDown = (e) => {
     if (e.target.closest('.node-connection-point')) return;
@@ -33,8 +41,8 @@ const GraphNode = ({
     // Store the offset in canvas coordinate space
     // Account for zoom and pan when calculating the drag start position
     const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
-    const canvasX = (e.clientX - canvasRect.left - pan.x) / zoom;
-    const canvasY = (e.clientY - canvasRect.top - pan.y) / zoom;
+    const canvasX = (e.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+    const canvasY = (e.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
     
     dragStartPos.current = {
       x: canvasX - node.position.x,
@@ -48,8 +56,8 @@ const GraphNode = ({
       // Get the canvas container rect
       const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
       // Transform mouse position from screen space to canvas coordinate space
-      const canvasX = (e.clientX - canvasRect.left - pan.x) / zoom;
-      const canvasY = (e.clientY - canvasRect.top - pan.y) / zoom;
+      const canvasX = (e.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+      const canvasY = (e.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
       
       const newX = canvasX - dragStartPos.current.x;
       const newY = canvasY - dragStartPos.current.y;
@@ -58,8 +66,8 @@ const GraphNode = ({
       // Get the canvas container rect
       const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
       // Transform mouse position from screen space to canvas coordinate space
-      const x = (e.clientX - canvasRect.left - pan.x) / zoom;
-      const y = (e.clientY - canvasRect.top - pan.y) / zoom;
+      const x = (e.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+      const y = (e.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
       onConnectionDrag({ x, y });
     }
   };
@@ -84,7 +92,7 @@ const GraphNode = ({
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, isConnecting, node.position, zoom, pan]);
+  }, [isDragging, isConnecting]);
 
   const handleConnectionPointMouseDown = (e, isOutput) => {
     e.stopPropagation();
@@ -92,7 +100,7 @@ const GraphNode = ({
     // Get actual node height from DOM (this will be scaled by zoom)
     const rect = nodeRef.current.getBoundingClientRect();
     // Divide by zoom to get the actual canvas space height
-    const nodeHeight = rect.height / zoom;
+    const nodeHeight = rect.height / zoomRef.current;
     
     // Use node position directly (already in canvas coordinates)
     // Add half the node width (100px) to center the connection point horizontally
