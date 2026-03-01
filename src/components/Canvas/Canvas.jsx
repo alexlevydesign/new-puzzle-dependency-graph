@@ -28,6 +28,7 @@ const Canvas = ({
   const [connectionStart, setConnectionStart] = useState(null);
   const [tempConnectionEnd, setTempConnectionEnd] = useState(null);
   const [insertionPreview, setInsertionPreview] = useState(null);
+  const [branchPreview, setBranchPreview] = useState(null); // { fromNodeId, position }
   const targetIndexRef = useRef(null); // Track target index for reordering
   const [commandPressed, setCommandPressed] = useState(false);
   
@@ -106,9 +107,11 @@ const Canvas = ({
         insertionPreview.to
       );
       setInsertionPreview(null);
+      setBranchPreview(null);
       onNodeSelect(newNode);
     } else {
       const newNode = onAddNode(nodeType, { x, y });
+      setBranchPreview(null);
       onNodeSelect(newNode);
     }
   };
@@ -119,8 +122,73 @@ const Canvas = ({
 
     // Check if hovering over a connection line
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = (e.clientX - rect.left - pan.x) / zoom;
+    const y = (e.clientY - rect.top - pan.y) / zoom;
+
+    // Check for branch creation (horizontal offset > 100px from main column in structured mode)
+    if (layoutMode === 'structured' && nodes.length > 0) {
+      const BRANCH_THRESHOLD = 100;
+      const isOffsetHorizontally = Math.abs(x - 400) > BRANCH_THRESHOLD;
+      
+      if (isOffsetHorizontally) {
+        // Find the node whose vertical bounds contain the drag Y position
+        // Or if none contain it, find the closest by center position
+        const eligibleNodes = nodes.filter(n => n.id !== draggedNode?.id);
+        
+        if (eligibleNodes.length > 0) {
+          // First, try to find a node whose bounds contain the drag Y
+          // Check ALL nodes and pick the best containing node (in case of overlaps)
+          let containingNode = null;
+          let bestContainmentScore = Infinity;
+          
+          for (const node of eligibleNodes) {
+            const nodeElement = document.getElementById(`node-${node.id}`);
+            const nodeHeight = nodeElement ? nodeElement.offsetHeight : 200;
+            const nodeTop = node.position.y;
+            const nodeBottom = node.position.y + nodeHeight;
+            const nodeCenter = node.position.y + nodeHeight / 2;
+            
+            if (y >= nodeTop && y <= nodeBottom) {
+              // Calculate how far from center (prefer nodes where drag is near center)
+              const distanceFromCenter = Math.abs(y - nodeCenter);
+              if (distanceFromCenter < bestContainmentScore) {
+                bestContainmentScore = distanceFromCenter;
+                containingNode = node;
+              }
+            }
+          }
+          
+          // If no node contains the drag point, find closest by center Y position
+          let closestNode = containingNode;
+          
+          if (!closestNode) {
+            closestNode = eligibleNodes[0];
+            const firstElement = document.getElementById(`node-${eligibleNodes[0].id}`);
+            const firstHeight = firstElement ? firstElement.offsetHeight : 200;
+            let minDistance = Math.abs(y - (eligibleNodes[0].position.y + firstHeight / 2));
+            
+            for (let i = 1; i < eligibleNodes.length; i++) {
+              const nodeElement = document.getElementById(`node-${eligibleNodes[i].id}`);
+              const nodeHeight = nodeElement ? nodeElement.offsetHeight : 200;
+              const centerY = eligibleNodes[i].position.y + nodeHeight / 2;
+              const distance = Math.abs(y - centerY);
+              
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestNode = eligibleNodes[i];
+              }
+            }
+          }
+          
+          setBranchPreview({ fromNodeId: closestNode.id, position: { x, y } });
+          setInsertionPreview(null);
+          return;
+        }
+      }
+    }
+    
+    // Clear branch preview if not creating a branch
+    setBranchPreview(null);
 
     let hoveredConnection = null;
     for (const conn of connections) {
@@ -148,6 +216,7 @@ const Canvas = ({
 
   const handleCanvasDragLeave = () => {
     setInsertionPreview(null);
+    setBranchPreview(null);
   };
 
   const handleCanvasClick = (e) => {
@@ -453,6 +522,52 @@ const Canvas = ({
             to={tempConnectionEnd}
             isTemp={true}
           />
+        )}
+        {/* Branch preview indicator */}
+        {branchPreview && (
+          <>
+            {(() => {
+              const fromNode = nodes.find(n => n.id === branchPreview.fromNodeId);
+              if (!fromNode) return null;
+              
+              const fromElement = document.getElementById(`node-${fromNode.id}`);
+              const fromNodeHeight = fromElement ? fromElement.offsetHeight : 200;
+              
+              // Start from bottom center of the source node
+              const startX = fromNode.position.x + 100;
+              const startY = fromNode.position.y + fromNodeHeight;
+              
+              // End at the drag position
+              const endX = branchPreview.position.x;
+              const endY = branchPreview.position.y;
+              
+              return (
+                <>
+                  <ConnectionLine
+                    from={{
+                      x: startX,
+                      y: startY
+                    }}
+                    to={{
+                      x: endX,
+                      y: endY
+                    }}
+                    isTemp={true}
+                  />
+                  {/* Preview circle at drag position */}
+                  <circle
+                    cx={endX}
+                    cy={endY}
+                    r="8"
+                    fill="rgba(33, 150, 243, 0.3)"
+                    stroke="#2196F3"
+                    strokeWidth="2"
+                    strokeDasharray="4,4"
+                  />
+                </>
+              );
+            })()}
+          </>
         )}
       </svg>
 
