@@ -292,6 +292,9 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-left">
+          <h1 className="app-title">
+            Puzz<span className="app-title-accent">Flow</span>
+          </h1>
           <div className="app-header-actions">
             <button 
               className="header-button header-icon-button" 
@@ -310,9 +313,6 @@ function App() {
               <img src="/icons/redo.svg" alt="Redo" />
             </button>
           </div>
-          <h1 className="app-title">
-            Puzz<span className="app-title-accent">Flow</span>
-          </h1>
         </div>
         <div className="app-header-actions">
           <button className="header-button" onClick={importData} title="Import project">
