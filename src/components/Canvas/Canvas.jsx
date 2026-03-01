@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import './Canvas.css';
 import GraphNode from './GraphNode.jsx';
 import ConnectionLine from './ConnectionLine.jsx';
-import { NODE_CONFIG } from '../../constants/nodeTypes.jsx';
+import { NODE_CONFIG, NODE_TYPES } from '../../constants/nodeTypes.jsx';
 
 const Canvas = ({
   nodes,
@@ -19,11 +19,14 @@ const Canvas = ({
 }) => {
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
+  const contextMenuRef = useRef(null);
   const [draggedNode, setDraggedNode] = useState(null);
   const [connectionStart, setConnectionStart] = useState(null);
   const [tempConnectionEnd, setTempConnectionEnd] = useState(null);
   const [insertionPreview, setInsertionPreview] = useState(null);
   const [commandPressed, setCommandPressed] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ left: 0, top: 0 });
   
   // Pan and Zoom state
   const [zoom, setZoom] = useState(1);
@@ -47,6 +50,11 @@ const Canvas = ({
           e.preventDefault();
           setSpacePressed(true);
         }
+      }
+      // Close context menu with Escape key
+      if (e.code === 'Escape' && contextMenu) {
+        e.preventDefault();
+        setContextMenu(null);
       }
       // Delete selected node with Backspace or Delete key
       if ((e.code === 'Backspace' || e.code === 'Delete') && selectedNode) {
@@ -77,7 +85,42 @@ const Canvas = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [selectedNode, onNodeDelete]);
+  }, [selectedNode, onNodeDelete, contextMenu]);
+
+  // Calculate context menu position to keep it within viewport bounds
+  useEffect(() => {
+    if (contextMenu && contextMenuRef.current && canvasRef.current) {
+      const menuRect = contextMenuRef.current.getBoundingClientRect();
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      
+      // Calculate initial position (centered horizontally, offset vertically)
+      let left = contextMenu.position.x * zoom + pan.x - (menuRect.width / 2);
+      let top = contextMenu.position.y * zoom + pan.y + 10; // 10px below cursor
+      
+      // Adjust horizontal position if menu extends beyond right edge
+      if (left + menuRect.width > canvasRect.width) {
+        left = canvasRect.width - menuRect.width - 10; // 10px padding from edge
+      }
+      
+      // Adjust horizontal position if menu extends beyond left edge
+      if (left < 10) {
+        left = 10; // 10px padding from edge
+      }
+      
+      // Adjust vertical position if menu extends beyond bottom edge
+      if (top + menuRect.height > canvasRect.height) {
+        // Position above the cursor instead
+        top = contextMenu.position.y * zoom + pan.y - menuRect.height - 10;
+      }
+      
+      // Adjust vertical position if menu extends beyond top edge
+      if (top < 10) {
+        top = 10; // 10px padding from edge
+      }
+      
+      setContextMenuPosition({ left, top });
+    }
+  }, [contextMenu, zoom, pan]);
 
   const handleCanvasDrop = (e) => {
     e.preventDefault();
@@ -338,12 +381,50 @@ const Canvas = ({
     }
   };
 
-  const handleConnectionEnd = (targetNodeId) => {
+  const handleConnectionEnd = (targetNodeId, releasePosition = null) => {
     if (connectionStart && targetNodeId && connectionStart.nodeId !== targetNodeId) {
       onConnectionCreate(connectionStart.nodeId, targetNodeId);
+      setConnectionStart(null);
+      setTempConnectionEnd(null);
+    } else if (connectionStart && !targetNodeId) {
+      // Connection was released without connecting to a node
+      // Show context menu at the release position
+      const position = releasePosition || tempConnectionEnd;
+      if (position) {
+        setContextMenu({
+          position: position,
+          sourceNodeId: connectionStart.nodeId
+        });
+      }
+      setConnectionStart(null);
+      setTempConnectionEnd(null);
+    } else {
+      setConnectionStart(null);
+      setTempConnectionEnd(null);
     }
-    setConnectionStart(null);
-    setTempConnectionEnd(null);
+  };
+
+  const handleContextMenuNodeSelect = (nodeType) => {
+    if (!contextMenu) return;
+
+    // Create new node at context menu position
+    const newNode = onAddNode(nodeType, {
+      x: contextMenu.position.x - 100, // Center the node on cursor
+      y: contextMenu.position.y
+    });
+
+    // Connect the source node to the new node
+    onConnectionCreate(contextMenu.sourceNodeId, newNode.id);
+    
+    // Select the new node
+    onNodeSelect(newNode);
+    
+    // Close context menu
+    setContextMenu(null);
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
   };
 
   // Helper function to calculate distance from point to line segment
@@ -461,6 +542,37 @@ const Canvas = ({
         />
       ))}
       </div>
+
+      {/* Context Menu for Node Selection */}
+      {contextMenu && (
+        <>
+          <div className="context-menu-overlay" onClick={handleCloseContextMenu} />
+          <div 
+            ref={contextMenuRef}
+            className="connection-context-menu"
+            style={{
+              left: `${contextMenuPosition.left}px`,
+              top: `${contextMenuPosition.top}px`
+            }}
+          >
+            <div className="context-menu-header">Add Node</div>
+            {Object.values(NODE_TYPES).map(type => {
+              const config = NODE_CONFIG[type];
+              return (
+                <button
+                  key={type}
+                  className="context-menu-item"
+                  onClick={() => handleContextMenuNodeSelect(type)}
+                  style={{ borderLeftColor: config.color }}
+                >
+                  <img src={config.icon} alt={config.label} className="context-menu-icon" />
+                  <span>{config.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Zoom Controls */}
       <div className="zoom-controls">

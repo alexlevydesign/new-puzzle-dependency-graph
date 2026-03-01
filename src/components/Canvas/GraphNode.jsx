@@ -72,14 +72,18 @@ const GraphNode = ({
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e) => {
     if (isDragging) {
       setIsDragging(false);
       onDragEnd();
     }
     if (isConnecting) {
       setIsConnecting(false);
-      onConnectionEnd(null); // Cancel the connection if released outside a target
+      // Get the final mouse position for context menu
+      const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
+      const x = (e.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+      const y = (e.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
+      onConnectionEnd(null, { x, y }); // Pass the release position
     }
   };
 
