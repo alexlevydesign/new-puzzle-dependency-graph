@@ -171,6 +171,7 @@ const GraphNode = ({
       </div>
       
       <div className="node-content">
+        <div className="node-type-label-above">{config.label}</div>
         <div className="node-title">{node.title || config.defaultTitle}</div>
         {node.description && (
           <div className="node-description">{node.description}</div>

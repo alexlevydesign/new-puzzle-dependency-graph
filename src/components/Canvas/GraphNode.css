@@ -58,6 +58,15 @@
   padding: 12px;
 }
 
+.node-type-label-above {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+}
+
 .node-title {
   font-size: 14px;
   font-weight: 500;
