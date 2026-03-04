@@ -15,7 +15,8 @@ const Canvas = ({
   onConnectionCreate,
   onConnectionRemove,
   onInsertNodeBetween,
-  onCollapseSidebar
+  onCollapseSidebar,
+  onUpdateNode
 }) => {
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
@@ -539,6 +540,7 @@ const Canvas = ({
           onConnectionStart={handleConnectionStart}
           onConnectionDrag={handleConnectionDrag}
           onConnectionEnd={handleConnectionEnd}
+          onUpdateNode={onUpdateNode}
         />
       ))}
       </div>

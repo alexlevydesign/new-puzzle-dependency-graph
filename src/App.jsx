@@ -365,6 +365,7 @@ function App() {
           onConnectionRemove={removeConnection}
           onInsertNodeBetween={insertNodeBetween}
           onCollapseSidebar={() => setIsSidebarExpanded(false)}
+          onUpdateNode={updateNode}
         />
         <NodePropertiesPanel
           node={selectedNode}

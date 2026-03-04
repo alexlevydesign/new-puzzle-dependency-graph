@@ -14,11 +14,15 @@ const GraphNode = ({
   onDragEnd,
   onConnectionStart,
   onConnectionDrag,
-  onConnectionEnd
+  onConnectionEnd,
+  onUpdateNode
 }) => {
   const nodeRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+  const titleInputRef = useRef(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
@@ -134,6 +138,39 @@ const GraphNode = ({
     onConnectionEnd(node.id);
   };
 
+  const handleTitleDoubleClick = (e) => {
+    e.stopPropagation();
+    setEditingTitle(node.title || config.defaultTitle);
+    setIsEditingTitle(true);
+    // Focus the input on next render
+    setTimeout(() => titleInputRef.current?.focus(), 0);
+  };
+
+  const handleTitleInputChange = (e) => {
+    setEditingTitle(e.target.value);
+  };
+
+  const commitTitleEdit = () => {
+    const trimmed = editingTitle.trim();
+    if (trimmed && trimmed !== (node.title || config.defaultTitle)) {
+      onUpdateNode(node.id, { title: trimmed });
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleInputKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitTitleEdit();
+    } else if (e.key === 'Escape') {
+      setIsEditingTitle(false);
+    }
+  };
+
+  const handleTitleInputBlur = () => {
+    commitTitleEdit();
+  };
+
   const handleConnectionPointMouseEnter = (e) => {
     if (isConnecting) {
       // Visual feedback when hovering over a valid target
@@ -172,7 +209,22 @@ const GraphNode = ({
       
       <div className="node-content">
         <div className="node-type-label-above">{config.label}</div>
-        <div className="node-title">{node.title || config.defaultTitle}</div>
+        <div className="node-title" onDoubleClick={handleTitleDoubleClick}>
+          {isEditingTitle ? (
+            <input
+              ref={titleInputRef}
+              className="node-title-input"
+              value={editingTitle}
+              onChange={handleTitleInputChange}
+              onKeyDown={handleTitleInputKeyDown}
+              onBlur={handleTitleInputBlur}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            node.title || config.defaultTitle
+          )}
+        </div>
         {node.description && (
           <div className="node-description">{node.description}</div>
         )}
