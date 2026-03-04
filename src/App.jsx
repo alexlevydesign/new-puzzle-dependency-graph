@@ -1,9 +1,39 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import './App.css';
-import Sidebar from './components/Sidebar/Sidebar.jsx';
 import Canvas from './components/Canvas/Canvas.jsx';
 import NodePropertiesPanel from './components/NodePropertiesPanel/NodePropertiesPanel.jsx';
 import { NODE_CONFIG } from './constants/nodeTypes.jsx';
+
+// ── Example graph: point-and-click game intro ──────────────────────────────
+const EXAMPLE_STATE = {
+  nodes: [
+    { id: 1,  type: 'GOAL',            title: 'Escape the locked room',      description: 'The player must find a way out of the room they woke up in.',                                               position: { x: 360, y: 60   }, items: [], tags: [], dependencies: [] },
+    { id: 2,  type: 'STORY_STATE',     title: 'Wake up in a dark room',      description: 'The game begins. The player is disoriented and the door is locked.',                                       position: { x: 360, y: 260  }, items: [], tags: [], dependencies: [] },
+    { id: 3,  type: 'PLAYER_ACTION',   title: 'Look around the room',        description: 'Player examines the surroundings and notices a desk, a locked door, and a faint light under a drawer.',   position: { x: 360, y: 460  }, items: [], tags: [], dependencies: [] },
+    { id: 4,  type: 'GET_ITEM',        title: 'Pick up the rusty key',       description: 'Hidden under the drawer lining. Only visible after examining the room.',                                   position: { x: 80,  y: 660  }, items: [], tags: [], dependencies: [] },
+    { id: 5,  type: 'GET_ITEM',        title: 'Find the crumpled note',      description: 'On the desk. Says "the third drawer sticks — push, don\'t pull."',                                        position: { x: 360, y: 660  }, items: [], tags: [], dependencies: [] },
+    { id: 6,  type: 'CHARACTER_ACTION',title: 'Voice from behind the door',  description: '"You\'re awake. You have ten minutes." Hints at an outside presence.',                                    position: { x: 640, y: 660  }, items: [], tags: [], dependencies: [] },
+    { id: 7,  type: 'USE_ITEM',        title: 'Try key on locked door',      description: 'The rusty key fits but the lock is jammed. Player must find a way to free it.',                           position: { x: 80,  y: 880  }, items: [], tags: [], dependencies: [] },
+    { id: 8,  type: 'STORY_STATE',     title: 'Third drawer opens',          description: "Following the note's hint reveals a hidden compartment inside the drawer.",                                position: { x: 360, y: 880  }, items: [], tags: [], dependencies: [] },
+    { id: 9,  type: 'GET_ITEM',        title: 'Grab the oil can',            description: 'Inside the hidden compartment. Needed to free the jammed lock.',                                          position: { x: 360, y: 1100 }, items: [], tags: [], dependencies: [] },
+    { id: 10, type: 'USE_ITEM',        title: 'Oil the lock, turn the key',  description: 'Combines the rusty key with the oil can. The door clicks open.',                                          position: { x: 220, y: 1320 }, items: [], tags: [], dependencies: [] },
+    { id: 11, type: 'STORY_STATE',     title: 'Door swings open',            description: 'The player steps into a dimly lit corridor. The intro ends.',                                             position: { x: 220, y: 1540 }, items: [], tags: [], dependencies: [] },
+  ],
+  connections: [
+    { from: 1, to: 2  },
+    { from: 2, to: 3  },
+    { from: 3, to: 4  },
+    { from: 3, to: 5  },
+    { from: 3, to: 6  },
+    { from: 4, to: 7  },
+    { from: 5, to: 8  },
+    { from: 8, to: 9  },
+    { from: 7, to: 10 },
+    { from: 9, to: 10 },
+    { from: 10, to: 11 },
+  ],
+  nextNodeId: 12
+};
 
 function App() {
   // Load initial state from localStorage
@@ -21,11 +51,7 @@ function App() {
     } catch (error) {
       console.error('Error loading from localStorage:', error);
     }
-    return {
-      nodes: [],
-      connections: [],
-      nextNodeId: 1
-    };
+    return EXAMPLE_STATE;
   };
 
   const initialState = loadFromLocalStorage();
@@ -34,7 +60,6 @@ function App() {
   const [connections, setConnections] = useState(initialState.connections);
   const [selectedNode, setSelectedNode] = useState(null);
   const [nextNodeId, setNextNodeId] = useState(initialState.nextNodeId);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   
   // History management for undo/redo
@@ -204,6 +229,48 @@ function App() {
     });
   }, []);
 
+  // Shift nodes downstream of a new node to restore consistent spacing.
+  // excludeIds: node IDs that must never be moved.
+  // thresholdY / newNodeBottom: vertical shift — only nodes at >= thresholdY that
+  //   overlap with newNodeBottom get pushed down by the overlap amount.
+  // columnX / columnTolerance: restrict vertical shift to a single X column.
+  // thresholdX / deltaX: shift nodes whose X >= thresholdX right by deltaX.
+  // maxX / leftDeltaX: shift nodes whose X <= maxX left by leftDeltaX.
+  const shiftNodes = useCallback((
+    excludeIds,
+    thresholdY,
+    newNodeBottom,
+    thresholdX = null,
+    deltaX = 0,
+    columnX = null,
+    columnTolerance = 150,
+    maxX = null,
+    leftDeltaX = 0
+  ) => {
+    setNodes(prev => prev.map(node => {
+      if (excludeIds.includes(node.id)) return node;
+
+      // Column constraint for vertical shifts
+      if (columnX !== null && Math.abs(node.position.x - columnX) > columnTolerance) {
+        return node;
+      }
+
+      let shiftY = 0;
+      if (thresholdY !== null && node.position.y >= thresholdY) {
+        const overlap = newNodeBottom - node.position.y;
+        if (overlap > 0) shiftY = overlap;
+      }
+
+      // Rightward shift: nodes at or beyond thresholdX
+      let shiftX = thresholdX !== null && node.position.x >= thresholdX ? deltaX : 0;
+      // Leftward shift: nodes at or before maxX
+      if (maxX !== null && node.position.x <= maxX) shiftX = leftDeltaX;
+
+      if (shiftY === 0 && shiftX === 0) return node;
+      return { ...node, position: { x: node.position.x + shiftX, y: node.position.y + shiftY } };
+    }));
+  }, []);
+
   const exportData = useCallback(() => {
     const data = {
       nodes,
@@ -274,6 +341,16 @@ function App() {
     }
   }, [nodes.length, connections.length]);
 
+  const loadExample = useCallback(() => {
+    if (nodes.length > 0 || connections.length > 0) {
+      if (!window.confirm('Load the example? This will replace your current canvas.')) return;
+    }
+    setNodes(EXAMPLE_STATE.nodes);
+    setConnections(EXAMPLE_STATE.connections);
+    setNextNodeId(EXAMPLE_STATE.nextNodeId);
+    setSelectedNode(null);
+  }, [nodes.length, connections.length]);
+
   // Close options menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -336,6 +413,15 @@ function App() {
                 <button 
                   className="options-menu-item" 
                   onClick={() => {
+                    loadExample();
+                    setShowOptionsMenu(false);
+                  }}
+                >
+                  Load Example
+                </button>
+                <button 
+                  className="options-menu-item options-menu-item--danger" 
+                  onClick={() => {
                     clearCanvas();
                     setShowOptionsMenu(false);
                   }}
@@ -348,11 +434,6 @@ function App() {
         </div>
       </header>
       <div className="app-content">
-        <Sidebar 
-          onNodeTypeSelect={addNode}
-          isExpanded={isSidebarExpanded}
-          onExpand={() => setIsSidebarExpanded(true)}
-        />
         <Canvas
           nodes={nodes}
           connections={connections}
@@ -364,7 +445,7 @@ function App() {
           onConnectionCreate={addConnection}
           onConnectionRemove={removeConnection}
           onInsertNodeBetween={insertNodeBetween}
-          onCollapseSidebar={() => setIsSidebarExpanded(false)}
+          onShiftNodes={shiftNodes}
         />
         <NodePropertiesPanel
           node={selectedNode}

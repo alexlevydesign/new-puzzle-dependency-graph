@@ -1,22 +1,19 @@
 .graph-node {
-  position: absolute;
+  position: relative;
   width: 200px;
   min-height: 100px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  cursor: grab;
+  cursor: default;
   user-select: none;
   z-index: 2;
   border: 2px solid transparent;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  overflow: visible;
 }
 
 .graph-node:active {
-  cursor: grabbing;
-}
-
-.graph-node:active {
-  cursor: grabbing;
+  cursor: default;
 }
 
 .graph-node:hover {
@@ -146,4 +143,88 @@
 .node-connection-point.output:hover,
 .node-connection-point.output.hover {
   bottom: -8px;
+}
+
+/* ── Wrapper that holds the card + hover zones ── */
+.node-wrapper {
+  position: absolute;
+  /* sized to exactly the card; zones extend outside via negative margin / padding */
+}
+
+/* ── Hover zones ── */
+.node-zone {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* invisible by default; pointer-events so hover still fires */
+  pointer-events: all;
+}
+
+/* Zone below: full card width, 48px tall gap */
+.node-zone-below {
+  top: 100%;
+  left: 0;
+  width: 200px;
+  height: 52px;
+}
+
+/* Zone to the right: card-height tall, 52px wide gap */
+.node-zone-right {
+  top: 0;
+  left: 200px;
+  bottom: 0;
+  width: 52px;
+}
+
+/* Zone to the left: card-height tall, 52px wide gap */
+.node-zone-left {
+  top: 0;
+  right: 200px;
+  bottom: 0;
+  width: 52px;
+  left: -52px;
+}
+
+/* ── Action buttons inside zones ── */
+.node-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #bbb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  z-index: 20;
+}
+
+.node-action-btn img {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* Reveal when hovering the zone */
+.node-zone:hover .node-action-btn {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.node-action-btn:hover {
+  border-color: #2196F3;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2);
+  background: #e8f4fd;
+}
+
+/* Branch button: slightly different accent */
+.node-action-btn--branch:hover {
+  border-color: #9c27b0;
+  box-shadow: 0 0 0 4px rgba(156, 39, 176, 0.2);
+  background: #f3e5f5;
 }

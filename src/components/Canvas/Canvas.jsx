@@ -4,6 +4,9 @@ import GraphNode from './GraphNode.jsx';
 import ConnectionLine from './ConnectionLine.jsx';
 import { NODE_CONFIG, NODE_TYPES } from '../../constants/nodeTypes.jsx';
 
+// Minimum vertical gap between a parent node's bottom edge and its child's top edge
+const NODE_VERTICAL_GAP = 120;
+
 const Canvas = ({
   nodes,
   connections,
@@ -15,18 +18,20 @@ const Canvas = ({
   onConnectionCreate,
   onConnectionRemove,
   onInsertNodeBetween,
-  onCollapseSidebar
+  onShiftNodes
 }) => {
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
   const contextMenuRef = useRef(null);
-  const [draggedNode, setDraggedNode] = useState(null);
   const [connectionStart, setConnectionStart] = useState(null);
   const [tempConnectionEnd, setTempConnectionEnd] = useState(null);
-  const [insertionPreview, setInsertionPreview] = useState(null);
   const [commandPressed, setCommandPressed] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({ left: 0, top: 0 });
+  const [addBelowMenu, setAddBelowMenu] = useState(null); // { sourceNode, position }
+  const [addBranchMenu, setAddBranchMenu] = useState(null); // { sourceNode, position }
+  const [insertBetweenMenu, setInsertBetweenMenu] = useState(null); // { fromNode, toNode, position, newNodePosition }
+  const [emptyStateMenu, setEmptyStateMenu] = useState(false);
   
   // Pan and Zoom state
   const [zoom, setZoom] = useState(1);
@@ -121,71 +126,6 @@ const Canvas = ({
       setContextMenuPosition({ left, top });
     }
   }, [contextMenu, zoom, pan]);
-
-  const handleCanvasDrop = (e) => {
-    e.preventDefault();
-    const nodeType = e.dataTransfer.getData('nodeType');
-    
-    if (!nodeType) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    // Account for zoom and pan when positioning dropped nodes
-    const x = (e.clientX - rect.left - pan.x) / zoom - 100;
-    const y = (e.clientY - rect.top - pan.y) / zoom - 50;
-
-    // Check if dropping between two connected nodes
-    if (insertionPreview) {
-      const newNode = onAddNode(nodeType, { x, y });
-      
-      onInsertNodeBetween(
-        newNode.id,
-        insertionPreview.from,
-        insertionPreview.to
-      );
-      setInsertionPreview(null);
-      onNodeSelect(newNode);
-    } else {
-      const newNode = onAddNode(nodeType, { x, y });
-      onNodeSelect(newNode);
-    }
-  };
-
-  const handleCanvasDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-
-    // Check if hovering over a connection line
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    let hoveredConnection = null;
-    for (const conn of connections) {
-      const fromNode = nodes.find(n => n.id === conn.from);
-      const toNode = nodes.find(n => n.id === conn.to);
-      
-      if (fromNode && toNode) {
-        const distance = distanceToLine(
-          x, y,
-          fromNode.position.x + 100,
-          fromNode.position.y + 50,
-          toNode.position.x + 100,
-          toNode.position.y + 50
-        );
-
-        if (distance < 20) {
-          hoveredConnection = conn;
-          break;
-        }
-      }
-    }
-
-    setInsertionPreview(hoveredConnection);
-  };
-
-  const handleCanvasDragLeave = () => {
-    setInsertionPreview(null);
-  };
 
   const handleCanvasClick = (e) => {
     if (e.target === canvasRef.current || e.target === contentRef.current) {
@@ -298,67 +238,6 @@ const Canvas = ({
     setPan({ x: 0, y: 0 });
   };
 
-  const handleNodeDragStart = (node, e) => {
-    if (commandPressed) {
-      // Disconnect mode - find and remove connections
-      const incomingConns = connections.filter(c => c.to === node.id);
-      incomingConns.forEach(conn => onConnectionRemove(conn.from, conn.to));
-    }
-    setDraggedNode(node);
-  };
-
-  const handleNodeDrag = (node, position) => {
-    onNodeMove(node.id, { position });
-    
-    // Check if dragging over a connection line
-    const nodeCenterX = position.x + 100;
-    const nodeCenterY = position.y + 50;
-    
-    let hoveredConnection = null;
-    for (const conn of connections) {
-      // Skip connections that involve this node
-      if (conn.from === node.id || conn.to === node.id) continue;
-      
-      const fromNode = nodes.find(n => n.id === conn.from);
-      const toNode = nodes.find(n => n.id === conn.to);
-      
-      if (fromNode && toNode) {
-        // Get actual node heights
-        const fromNodeElement = document.querySelector(`[data-node-id="${fromNode.id}"]`);
-        const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
-        
-        const distance = distanceToLine(
-          nodeCenterX,
-          nodeCenterY,
-          fromNode.position.x + 100,
-          fromNode.position.y + fromNodeHeight,
-          toNode.position.x + 100,
-          toNode.position.y
-        );
-
-        if (distance < 30) {
-          hoveredConnection = conn;
-          break;
-        }
-      }
-    }
-    
-    setInsertionPreview(hoveredConnection);
-  };
-
-  const handleNodeDragEnd = () => {
-    // If we're hovering over a connection, insert the node between
-    if (insertionPreview && draggedNode) {
-      onInsertNodeBetween(
-        draggedNode.id,
-        insertionPreview.from,
-        insertionPreview.to
-      );
-    }
-    setDraggedNode(null);
-    setInsertionPreview(null);
-  };
-
   const handleConnectionStart = (nodeId, position, isFromInput = false) => {
     // If dragging from input, just remove the connection (no reconnection)
     if (isFromInput) {
@@ -427,50 +306,191 @@ const Canvas = ({
     setContextMenu(null);
   };
 
-  // Helper function to calculate distance from point to line segment
-  const distanceToLine = (px, py, x1, y1, x2, y2) => {
-    const A = px - x1;
-    const B = py - y1;
-    const C = x2 - x1;
-    const D = y2 - y1;
+  // Returns the Y position that keeps a new BELOW-child of sourceNode on the same
+  // row as any already-existing below-children (same X column).
+  // Falls back to sourceNode.y + nodeHeight + NODE_VERTICAL_GAP if no children yet.
+  const getChildY = (sourceNode) => {
+    const nodeElement = document.querySelector(`[data-node-id="${sourceNode.id}"]`);
+    const nodeHeight = nodeElement ? nodeElement.offsetHeight : 100;
+    const defaultY = sourceNode.position.y + nodeHeight + NODE_VERTICAL_GAP;
 
-    const dot = A * C + B * D;
-    const lenSq = C * C + D * D;
-    let param = -1;
+    // Find all direct children of this source node
+    const childIds = connections
+      .filter(c => c.from === sourceNode.id)
+      .map(c => c.to);
+    if (childIds.length === 0) return defaultY;
 
-    if (lenSq !== 0) param = dot / lenSq;
+    const childNodes = nodes.filter(n => childIds.includes(n.id));
+    const maxChildY = Math.max(...childNodes.map(n => n.position.y));
+    return Math.max(defaultY, maxChildY);
+  };
 
-    let xx, yy;
+  const handleAddBelow = (sourceNode) => {
+    const nodeElement = document.querySelector(`[data-node-id="${sourceNode.id}"]`);
+    const nodeHeight = nodeElement ? nodeElement.offsetHeight : 100;
+    const newY = getChildY(sourceNode);
+    setAddBelowMenu({
+      sourceNode,
+      position: {
+        x: sourceNode.position.x + 100,
+        y: sourceNode.position.y + nodeHeight + 20
+      },
+      newNodePosition: {
+        x: sourceNode.position.x,
+        y: newY
+      }
+    });
+  };
 
-    if (param < 0) {
-      xx = x1;
-      yy = y1;
-    } else if (param > 1) {
-      xx = x2;
-      yy = y2;
-    } else {
-      xx = x1 + param * C;
-      yy = y1 + param * D;
+  const handleAddBelowNodeSelect = (nodeType) => {
+    if (!addBelowMenu) return;
+    const { sourceNode, newNodePosition } = addBelowMenu;
+
+    const newNodeBottom = newNodePosition.y + 100 + NODE_VERTICAL_GAP;
+    // Pass sourceNode.position.x as columnX so only nodes in the same vertical
+    // column get shifted down — lateral siblings at the same Y stay put.
+    onShiftNodes([sourceNode.id], newNodePosition.y, newNodeBottom, null, 0, sourceNode.position.x);
+
+    const newNode = onAddNode(nodeType, newNodePosition);
+    onConnectionCreate(sourceNode.id, newNode.id);
+    onNodeSelect(newNode);
+    setAddBelowMenu(null);
+  };
+
+  const handleCloseAddBelowMenu = () => {
+    setAddBelowMenu(null);
+  };
+
+  const handleAddBranch = (sourceNode, direction) => {
+    const nodeElement = document.querySelector(`[data-node-id="${sourceNode.id}"]`);
+    const nodeHeight = nodeElement ? nodeElement.offsetHeight : 100;
+    const offsetX = direction === 'right' ? 280 : -280;
+    // Branch nodes should sit at the same Y as any below-child of this source node.
+    // getChildY returns sourceNode.y + height + 80 when no children exist yet,
+    // or the max Y of existing children — so all siblings (below + branch) share one row.
+    const newY = getChildY(sourceNode);
+    setAddBranchMenu({
+      sourceNode,
+      direction,
+      position: {
+        x: sourceNode.position.x + (direction === 'right' ? 200 + 60 : -60),
+        y: sourceNode.position.y + nodeHeight / 2
+      },
+      newNodePosition: {
+        x: sourceNode.position.x + offsetX,
+        y: newY
+      }
+    });
+  };
+
+  const handleAddBranchNodeSelect = (nodeType) => {
+    if (!addBranchMenu) return;
+    const { sourceNode, direction, newNodePosition } = addBranchMenu;
+
+    // Shift nodes sideways to make room for the branch node
+    if (direction === 'right') {
+      // Shift any nodes already at or to the right of the new position
+      onShiftNodes([sourceNode.id], null, 0, newNodePosition.x, 280);
+    }
+    // Left branch: nodes to the left will be shifted left similarly
+    // Using a negative deltaX — thresholdX is the new node's right edge
+    if (direction === 'left') {
+      onShiftNodes([sourceNode.id], null, 0, newNodePosition.x, -280);
     }
 
-    const dx = px - xx;
-    const dy = py - yy;
-    return Math.sqrt(dx * dx + dy * dy);
+    const newNode = onAddNode(nodeType, newNodePosition);
+    onConnectionCreate(sourceNode.id, newNode.id);
+    onNodeSelect(newNode);
+    setAddBranchMenu(null);
+  };
+
+  const handleCloseAddBranchMenu = () => {
+    setAddBranchMenu(null);
+  };
+
+  const handleInsertBetween = (fromNode, toNode) => {
+    const NODE_WIDTH = 200;
+    const HORIZONTAL_GAP = 80;
+    const fromEl = document.querySelector(`[data-node-id="${fromNode.id}"]`);
+    const fromHeight = fromEl ? fromEl.offsetHeight : 100;
+
+    // A connection is horizontal when the two nodes share roughly the same Y level
+    // Use a tight threshold (30px) — branch siblings are placed at identical Y
+    const isHorizontal = Math.abs(toNode.position.y - fromNode.position.y) < 30;
+
+    let newNodePosition, menuPosition;
+    if (isHorizontal) {
+      const goingRight = toNode.position.x > fromNode.position.x;
+      // The new node slots into toNode's current X — toNode will be shifted out
+      const newX = goingRight
+        ? fromNode.position.x + NODE_WIDTH + HORIZONTAL_GAP
+        : fromNode.position.x - NODE_WIDTH - HORIZONTAL_GAP;
+      newNodePosition = { x: newX, y: fromNode.position.y };
+      // Show the menu just above the midpoint of the connection
+      const midX = (fromNode.position.x + toNode.position.x) / 2 + NODE_WIDTH / 2;
+      menuPosition = { x: midX, y: fromNode.position.y - 20 };
+    } else {
+      const newY = fromNode.position.y + fromHeight + NODE_VERTICAL_GAP;
+      newNodePosition = { x: fromNode.position.x, y: newY };
+      menuPosition = { x: fromNode.position.x + 100, y: newY + 20 };
+    }
+
+    setInsertBetweenMenu({
+      fromNode,
+      toNode,
+      isHorizontal,
+      position: menuPosition,
+      newNodePosition
+    });
+  };
+
+  const handleInsertBetweenNodeSelect = (nodeType) => {
+    if (!insertBetweenMenu) return;
+    const { fromNode, toNode, isHorizontal, newNodePosition } = insertBetweenMenu;
+
+    if (isHorizontal) {
+      const goingRight = toNode.position.x > fromNode.position.x;
+      const NODE_WIDTH = 200;
+      const HORIZONTAL_GAP = 80;
+      const shiftAmount = NODE_WIDTH + HORIZONTAL_GAP;
+
+      if (goingRight) {
+        // Push toNode and every node at or beyond its X rightward — Y unchanged
+        onShiftNodes([fromNode.id], null, 0, toNode.position.x, shiftAmount);
+      } else {
+        // Push toNode and every node at or before its X leftward — Y unchanged
+        onShiftNodes([fromNode.id], null, 0, null, 0, null, 150, toNode.position.x, -shiftAmount);
+      }
+    } else {
+      const newNodeBottom = newNodePosition.y + 100 + NODE_VERTICAL_GAP;
+      onShiftNodes([fromNode.id], toNode.position.y, newNodeBottom, null, 0, fromNode.position.x);
+    }
+
+    const newNode = onAddNode(nodeType, newNodePosition);
+    onInsertNodeBetween(newNode.id, fromNode.id, toNode.id);
+    onNodeSelect(newNode);
+    setInsertBetweenMenu(null);
+  };
+
+  const handleCloseInsertBetweenMenu = () => {
+    setInsertBetweenMenu(null);
+  };
+
+  const handleEmptyStateNodeSelect = (nodeType) => {
+    const newNode = onAddNode(nodeType, { x: 300, y: 200 });
+    onNodeSelect(newNode);
+    setEmptyStateMenu(false);
   };
 
   return (
     <div
       ref={canvasRef}
       className="canvas"
-      onDrop={handleCanvasDrop}
-      onDragOver={handleCanvasDragOver}
-      onDragLeave={handleCanvasDragLeave}
       onClick={handleCanvasClick}
       onWheel={handleWheel}
       onMouseDown={handleCanvasMouseDown}
       onMouseMove={handleCanvasMouseMove}
       onMouseUp={handleCanvasMouseUp}
-      onMouseEnter={onCollapseSidebar}
       style={{ 
         cursor: isPanning ? 'grabbing' : 'grab'
       }}
@@ -497,9 +517,6 @@ const Canvas = ({
           const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
           const toNodeHeight = toNodeElement ? toNodeElement.offsetHeight : 100;
 
-          const isHighlighted = insertionPreview?.from === conn.from && 
-                               insertionPreview?.to === conn.to;
-
           return (
             <ConnectionLine
               key={`${conn.from}-${conn.to}-${index}`}
@@ -511,7 +528,8 @@ const Canvas = ({
                 x: toNode.position.x + 100,
                 y: toNode.position.y
               }}
-              isHighlighted={isHighlighted}
+              isHighlighted={false}
+              onAddBetween={() => handleInsertBetween(fromNode, toNode)}
             />
           );
         })}
@@ -533,17 +551,16 @@ const Canvas = ({
           zoom={zoom}
           pan={pan}
           onSelect={onNodeSelect}
-          onDragStart={handleNodeDragStart}
-          onDrag={handleNodeDrag}
-          onDragEnd={handleNodeDragEnd}
           onConnectionStart={handleConnectionStart}
           onConnectionDrag={handleConnectionDrag}
           onConnectionEnd={handleConnectionEnd}
+          onAddBelow={handleAddBelow}
+          onAddBranch={handleAddBranch}
         />
       ))}
       </div>
 
-      {/* Context Menu for Node Selection */}
+      {/* Context Menu for Node Selection (from connection drag) */}
       {contextMenu && (
         <>
           <div className="context-menu-overlay" onClick={handleCloseContextMenu} />
@@ -563,6 +580,148 @@ const Canvas = ({
                   key={type}
                   className="context-menu-item"
                   onClick={() => handleContextMenuNodeSelect(type)}
+                  style={{ borderLeftColor: config.color }}
+                >
+                  <img src={config.icon} alt={config.label} className="context-menu-icon" />
+                  <span>{config.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Add-Below Node Type Menu */}
+      {addBelowMenu && (() => {
+        const screenX = addBelowMenu.position.x * zoom + pan.x;
+        const screenY = addBelowMenu.position.y * zoom + pan.y;
+        return (
+          <>
+            <div className="context-menu-overlay" onClick={handleCloseAddBelowMenu} />
+            <div
+              className="connection-context-menu add-below-menu"
+              style={{
+                left: `${screenX}px`,
+                top: `${screenY}px`,
+                transform: 'translateX(-50%)'
+              }}
+            >
+              <div className="context-menu-header">Add Node Below</div>
+              {Object.values(NODE_TYPES).map(type => {
+                const config = NODE_CONFIG[type];
+                return (
+                  <button
+                    key={type}
+                    className="context-menu-item"
+                    onClick={() => handleAddBelowNodeSelect(type)}
+                    style={{ borderLeftColor: config.color }}
+                  >
+                    <img src={config.icon} alt={config.label} className="context-menu-icon" />
+                    <span>{config.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
+
+      {/* Add Branch Node Type Menu */}
+      {addBranchMenu && (() => {
+        const screenX = addBranchMenu.position.x * zoom + pan.x;
+        const screenY = addBranchMenu.position.y * zoom + pan.y;
+        return (
+          <>
+            <div className="context-menu-overlay" onClick={handleCloseAddBranchMenu} />
+            <div
+              className="connection-context-menu"
+              style={{
+                left: `${screenX}px`,
+                top: `${screenY}px`,
+                transform: 'translateY(-50%)'
+              }}
+            >
+              <div className="context-menu-header">Add Branch</div>
+              {Object.values(NODE_TYPES).map(type => {
+                const config = NODE_CONFIG[type];
+                return (
+                  <button
+                    key={type}
+                    className="context-menu-item"
+                    onClick={() => handleAddBranchNodeSelect(type)}
+                    style={{ borderLeftColor: config.color }}
+                  >
+                    <img src={config.icon} alt={config.label} className="context-menu-icon" />
+                    <span>{config.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
+
+      {/* Insert-Between Node Type Menu */}
+      {insertBetweenMenu && (() => {
+        const screenX = insertBetweenMenu.position.x * zoom + pan.x;
+        const screenY = insertBetweenMenu.position.y * zoom + pan.y;
+        return (
+          <>
+            <div className="context-menu-overlay" onClick={handleCloseInsertBetweenMenu} />
+            <div
+              className="connection-context-menu add-below-menu"
+              style={{
+                left: `${screenX}px`,
+                top: `${screenY}px`,
+                transform: 'translateX(-50%)'
+              }}
+            >
+              <div className="context-menu-header">Insert Node</div>
+              {Object.values(NODE_TYPES).map(type => {
+                const config = NODE_CONFIG[type];
+                return (
+                  <button
+                    key={type}
+                    className="context-menu-item"
+                    onClick={() => handleInsertBetweenNodeSelect(type)}
+                    style={{ borderLeftColor: config.color }}
+                  >
+                    <img src={config.icon} alt={config.label} className="context-menu-icon" />
+                    <span>{config.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
+
+      {/* Empty state — shown when there are no nodes */}      {nodes.length === 0 && !emptyStateMenu && (
+        <div className="canvas-empty-state">
+          <p className="canvas-empty-label">No nodes yet</p>
+          <button
+            className="canvas-empty-add-btn"
+            onClick={(e) => { e.stopPropagation(); setEmptyStateMenu(true); }}
+          >
+            <img src="/icons/add.svg" alt="Add" />
+            Add first node
+          </button>
+        </div>
+      )}
+
+      {/* Empty-state node type picker */}
+      {emptyStateMenu && (
+        <>
+          <div className="context-menu-overlay" onClick={() => setEmptyStateMenu(false)} />
+          <div className="connection-context-menu empty-state-menu">
+            <div className="context-menu-header">Choose a node type</div>
+            {Object.values(NODE_TYPES).map(type => {
+              const config = NODE_CONFIG[type];
+              return (
+                <button
+                  key={type}
+                  className="context-menu-item"
+                  onClick={() => handleEmptyStateNodeSelect(type)}
                   style={{ borderLeftColor: config.color }}
                 >
                   <img src={config.icon} alt={config.label} className="context-menu-icon" />

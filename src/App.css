@@ -126,6 +126,14 @@
   background-color: #e8e8e8;
 }
 
+.options-menu-item--danger {
+  color: #c0392b;
+}
+
+.options-menu-item--danger:hover {
+  background-color: #fff0ef;
+}
+
 .app-content {
   flex: 1;
   display: flex;

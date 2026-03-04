@@ -1,12 +1,10 @@
 import React from 'react';
 import './NodeTypeButton.css';
 
-const NodeTypeButton = ({ type, config, onDragStart }) => {
+const NodeTypeButton = ({ type, config }) => {
   return (
     <div
       className="node-type-button"
-      draggable
-      onDragStart={(e) => onDragStart(e, type)}
       style={{ backgroundColor: config.color, border: config.borderColor }}
     >
       <img src={config.icon} alt={config.label} className="sidebar-node-type-icon" />
