@@ -152,8 +152,18 @@ const GraphNode = ({
 
   const commitTitleEdit = () => {
     const trimmed = editingTitle.trim();
-    if (trimmed && trimmed !== (node.title || config.defaultTitle)) {
-      onUpdateNode(node.id, { title: trimmed });
+    if (node) {
+      const updates = {};
+      if (trimmed && trimmed !== (node.title || config.defaultTitle)) {
+        updates.title = trimmed;
+      }
+      // For GET_ITEM nodes, also sync the items array with the title edit
+      if (node.type === NODE_TYPES.GET_ITEM) {
+        updates.items = trimmed ? [trimmed] : [];
+      }
+      if (Object.keys(updates).length > 0) {
+        onUpdateNode(node.id, updates);
+      }
     }
     setIsEditingTitle(false);
   };

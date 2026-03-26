@@ -162,6 +162,8 @@ function App() {
     setNodes(prev => prev.map(node => 
       node.id === nodeId ? { ...node, ...updates } : node
     ));
+    // Keep selectedNode in sync if it's the node being edited
+    setSelectedNode(prev => prev?.id === nodeId ? { ...prev, ...updates } : prev);
   }, []);
 
   const deleteNode = useCallback((nodeId) => {
