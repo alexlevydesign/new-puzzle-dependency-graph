@@ -15,8 +15,7 @@ const Canvas = ({
   onConnectionCreate,
   onConnectionRemove,
   onInsertNodeBetween,
-  onCollapseSidebar,
-  onUpdateNode
+  onCollapseSidebar
 }) => {
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
@@ -414,8 +413,17 @@ const Canvas = ({
       y: contextMenu.position.y
     });
 
-    // Connect the source node to the new node
-    onConnectionCreate(contextMenu.sourceNodeId, newNode.id);
+    if (contextMenu.insertBetween) {
+      // We're inserting a node between two existing nodes
+      const { from, to } = contextMenu.insertBetween;
+      // Remove the old connection and create two new ones
+      onConnectionRemove(from, to);
+      onConnectionCreate(from, newNode.id);
+      onConnectionCreate(newNode.id, to);
+    } else if (contextMenu.sourceNodeId) {
+      // We're connecting from a source node to the new node
+      onConnectionCreate(contextMenu.sourceNodeId, newNode.id);
+    }
     
     // Select the new node
     onNodeSelect(newNode);
@@ -426,6 +434,15 @@ const Canvas = ({
 
   const handleCloseContextMenu = () => {
     setContextMenu(null);
+  };
+
+  const handleConnectionLineInsertClick = (conn, midX, midY) => {
+    // Show context menu at midpoint of connection line
+    // Store the connection info so we can insert a node between them
+    setContextMenu({
+      position: { x: midX, y: midY },
+      insertBetween: { from: conn.from, to: conn.to }
+    });
   };
 
   // Helper function to calculate distance from point to line segment
@@ -513,6 +530,7 @@ const Canvas = ({
                 y: toNode.position.y
               }}
               isHighlighted={isHighlighted}
+              onInsertClick={(midX, midY) => handleConnectionLineInsertClick(conn, midX, midY)}
             />
           );
         })}
@@ -540,7 +558,6 @@ const Canvas = ({
           onConnectionStart={handleConnectionStart}
           onConnectionDrag={handleConnectionDrag}
           onConnectionEnd={handleConnectionEnd}
-          onUpdateNode={onUpdateNode}
         />
       ))}
       </div>

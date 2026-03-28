@@ -10,7 +10,10 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
   const [tags, setTags] = useState([]);
   const [isClosing, setIsClosing] = useState(false);
   const [prevNode, setPrevNode] = useState(null);
+  const [selectedUseItem, setSelectedUseItem] = useState('');
+  const [removeAfterUse, setRemoveAfterUse] = useState(false);
 
+  // ALL hooks must be called unconditionally, BEFORE any early returns
   useEffect(() => {
     if (node) {
       setTitle(node.title || '');
@@ -18,12 +21,67 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
       setTags(node.tags || []);
       setIsClosing(false);
       setPrevNode(node);
+      // Restore use-item state from node data if it's a USE_ITEM node
+      if (node.type === NODE_TYPES.USE_ITEM) {
+        setSelectedUseItem(node.selectedUseItem || '');
+        setRemoveAfterUse(node.removeAfterUse || false);
+      } else {
+        setSelectedUseItem('');
+        setRemoveAfterUse(false);
+      }
     } else if (prevNode && !node) {
       // Node was deselected, trigger closing animation
       setIsClosing(true);
     }
   }, [node, prevNode]);
 
+  // Auto-initialize USE_ITEM nodes with upstream items BEFORE early returns
+  useEffect(() => {
+    if (!node || node.type !== NODE_TYPES.USE_ITEM || !nodes) return;
+    
+    // Only auto-initialize if user has NOT explicitly set items yet (itemsSelectionInitialized flag)
+    if (!node.itemsSelectionInitialized && (!Array.isArray(node.items) || node.items.length === 0)) {
+      // We need to compute upstream items to initialize with
+      const memo = new Map();
+      const visiting = new Set();
+      
+      const getUpstream = (nodeId) => {
+        if (memo.has(nodeId)) return memo.get(nodeId);
+        if (visiting.has(nodeId)) return new Set();
+        visiting.add(nodeId);
+
+        const items = new Set();
+        const parents = connections
+          .filter(conn => conn.to === nodeId)
+          .map(conn => conn.from);
+
+        parents.forEach(pid => {
+          const parent = nodes.find(n => n.id === pid);
+          if (parent) {
+            const parentItems = getUpstream(pid);
+            parentItems.forEach(i => items.add(i));
+            
+            if (parent.type === NODE_TYPES.GET_ITEM && Array.isArray(parent.items)) {
+              parent.items.forEach(i => {
+                if (i && i.toString().trim()) items.add(i.toString().trim());
+              });
+            }
+          }
+        });
+
+        memo.set(nodeId, items);
+        visiting.delete(nodeId);
+        return items;
+      };
+
+      const upstream = getUpstream(node.id);
+      if (upstream.size > 0) {
+        onUpdateNode(node.id, { items: Array.from(upstream) });
+      }
+    }
+  }, [node?.id, node?.type, nodes, connections, onUpdateNode]);
+
+  // Early returns must happen AFTER all hooks
   if (!node && !isClosing) {
     return null;
   }
@@ -45,13 +103,14 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
     .map(conn => conn.from);
 
   // Calculate available items from all ancestor GET_ITEM nodes (applying USE_ITEM filters along path)
+  // For convergence nodes, an item is only available if it exists on ALL paths reaching that node
   const getAvailableItems = () => {
     if (!nodes) return [];
 
-    const memo = new Map();
     const visiting = new Set();
 
-    const itemsForNode = (nodeId) => {
+    // Compute items available through each parent path independently, then intersect
+    const itemsForNode = (nodeId, memo = new Map()) => {
       if (memo.has(nodeId)) return memo.get(nodeId);
       if (visiting.has(nodeId)) return new Set(); // break cycles
       visiting.add(nodeId);
@@ -70,51 +129,104 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
         });
       }
 
-      // Merge items from all parent nodes
+      // Get parent nodes
       const parents = connections
         .filter(conn => conn.to === nodeId)
         .map(conn => conn.from);
 
-      parents.forEach(pid => {
-        const parentItems = itemsForNode(pid);
-        parentItems.forEach(i => items.add(i));
-      });
-
-      // If this node is a USE_ITEM node and it has an explicit items array,
-      // treat it as a filter: only items present in current.items remain available downstream.
-      let result = items;
-      if (current.type === NODE_TYPES.USE_ITEM) {
-        if (Array.isArray(current.items)) {
-          if (current.items.length === 0) {
-            // user explicitly deselected all items at this node -> nothing passes
-            result = new Set();
-          } else {
+      if (parents.length === 0) {
+        // No parents - just return items from this node
+        let result = items;
+        if (current.type === NODE_TYPES.USE_ITEM) {
+          // A USE_ITEM's items array represents items the user explicitly selected/deselected
+          if (Array.isArray(current.items) && current.items.length > 0) {
+            // User made explicit selections
             const allowed = new Set(current.items.map(i => i.toString().trim()));
             result = new Set(Array.from(items).filter(i => allowed.has(i)));
+          } else if (Array.isArray(current.items) && current.items.length === 0) {
+            // User explicitly deselected ALL items
+            result = new Set();
+          } else {
+            // No explicit selection made - allow all items
+            result = items;
           }
-        } else {
-          // no explicit selection on this USE_ITEM node -> default: allow all
-          result = items;
+          
+          // If an item is marked for removal after use, remove it from downstream
+          if (current.removeAfterUse && current.selectedUseItem) {
+            result.delete(current.selectedUseItem);
+          }
         }
+        memo.set(nodeId, result);
+        visiting.delete(nodeId);
+        return result;
       }
 
-      memo.set(nodeId, result);
+      // For each parent, compute items available through that path
+      const pathItemSets = parents.map(pid => {
+        const parentItems = itemsForNode(pid, memo);
+        
+        // Merge with items from this node
+        const combined = new Set(parentItems);
+        if (current.type === NODE_TYPES.GET_ITEM && Array.isArray(current.items)) {
+          current.items.forEach(i => {
+            if (i && i.toString().trim()) combined.add(i.toString().trim());
+          });
+        }
+
+        // Apply USE_ITEM filtering only if current is a USE_ITEM node
+        let result = combined;
+        if (current.type === NODE_TYPES.USE_ITEM) {
+          // A USE_ITEM's items array represents items the user explicitly selected/deselected
+          // We should only filter out items the user explicitly turned OFF
+          // New items that didn't exist when selections were made should pass through
+          if (Array.isArray(current.items) && current.items.length > 0) {
+            // User made explicit selections. Only exclude items that the user explicitly turned off.
+            // An item was explicitly turned off if it's not in the items array AND it's a known item
+            // (i.e., items that were available at the time the user made selections).
+            // The safest approach: only items in current.items array pass through
+            const allowed = new Set(current.items.map(i => i.toString().trim()));
+            result = new Set(Array.from(combined).filter(i => allowed.has(i)));
+          } else if (Array.isArray(current.items) && current.items.length === 0) {
+            // User explicitly deselected ALL items
+            result = new Set();
+          } else {
+            // No explicit selection made - allow all items
+            result = combined;
+          }
+          
+          // If an item is marked for removal after use, remove it from downstream
+          if (current.removeAfterUse && current.selectedUseItem) {
+            result.delete(current.selectedUseItem);
+          }
+        }
+
+        return result;
+      });
+
+      // For convergence nodes (multiple parents), only items present on ALL paths are available
+      let finalResult = pathItemSets.length > 1
+        ? new Set(Array.from(pathItemSets[0]).filter(item => 
+            pathItemSets.every(set => set.has(item))
+          ))
+        : (pathItemSets[0] || new Set());
+
+      memo.set(nodeId, finalResult);
       visiting.delete(nodeId);
-      return result;
+      return finalResult;
     };
 
     const finalSet = itemsForNode(displayNode.id);
     return Array.from(finalSet).sort((a, b) => a.localeCompare(b));
   };
 
-  // Compute upstream items for UI on USE_ITEM nodes (do not apply current node's USE_ITEM filter)
+  // Compute upstream items for UI on USE_ITEM nodes (apply filtering and removal from upstream USE_ITEM nodes)
+  // For convergence nodes, an item is only available if it exists on ALL paths reaching that node
   const getUpstreamItems = () => {
     if (!nodes) return [];
 
-    const memo = new Map();
     const visiting = new Set();
 
-    const itemsFromParents = (nodeId) => {
+    const itemsFromParents = (nodeId, memo = new Map()) => {
       if (memo.has(nodeId)) return memo.get(nodeId);
       if (visiting.has(nodeId)) return new Set();
       visiting.add(nodeId);
@@ -125,27 +237,93 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
         return new Set();
       }
 
-      // Merge items from all parent nodes
-      const items = new Set();
+      // Get parent nodes
       const parents = connections
         .filter(conn => conn.to === nodeId)
         .map(conn => conn.from);
 
-      parents.forEach(pid => {
-        const parentItems = itemsFromParents(pid);
-        parentItems.forEach(i => items.add(i));
-      });
-
-      // Also include this node's GET_ITEM outputs
-      if (current.type === NODE_TYPES.GET_ITEM && Array.isArray(current.items)) {
-        current.items.forEach(i => {
-          if (i && i.toString().trim()) items.add(i.toString().trim());
-        });
+      if (parents.length === 0) {
+        // No parents - just return items from this node
+        const items = new Set();
+        if (current.type === NODE_TYPES.GET_ITEM && Array.isArray(current.items)) {
+          current.items.forEach(i => {
+            if (i && i.toString().trim()) items.add(i.toString().trim());
+          });
+        }
+        let result = items;
+        if (current.type === NODE_TYPES.USE_ITEM) {
+          // A USE_ITEM's items array represents items the user explicitly selected/deselected
+          if (Array.isArray(current.items) && current.items.length > 0) {
+            // User made explicit selections
+            const allowed = new Set(current.items.map(i => i.toString().trim()));
+            result = new Set(Array.from(items).filter(i => allowed.has(i)));
+          } else if (Array.isArray(current.items) && current.items.length === 0) {
+            // User explicitly deselected ALL items
+            result = new Set();
+          } else {
+            // No explicit selection made - allow all items
+            result = items;
+          }
+          
+          // If an item is marked for removal after use, remove it from downstream
+          if (current.removeAfterUse && current.selectedUseItem) {
+            result.delete(current.selectedUseItem);
+          }
+        }
+        memo.set(nodeId, result);
+        visiting.delete(nodeId);
+        return result;
       }
 
-      memo.set(nodeId, items);
+      // For each parent, compute items available through that path
+      const pathItemSets = parents.map(pid => {
+        const parentItems = itemsFromParents(pid, memo);
+        
+        // Merge with items from this node
+        const combined = new Set(parentItems);
+        if (current.type === NODE_TYPES.GET_ITEM && Array.isArray(current.items)) {
+          current.items.forEach(i => {
+            if (i && i.toString().trim()) combined.add(i.toString().trim());
+          });
+        }
+
+        // Apply USE_ITEM filtering only if current is a USE_ITEM node
+        let result = combined;
+        if (current.type === NODE_TYPES.USE_ITEM) {
+          // A USE_ITEM's items array represents items the user explicitly selected/deselected
+          // We should only filter out items the user explicitly turned OFF
+          // New items that didn't exist when selections were made should pass through
+          if (Array.isArray(current.items) && current.items.length > 0) {
+            // User made explicit selections. Only exclude items that the user explicitly turned off.
+            const allowed = new Set(current.items.map(i => i.toString().trim()));
+            result = new Set(Array.from(combined).filter(i => allowed.has(i)));
+          } else if (Array.isArray(current.items) && current.items.length === 0) {
+            // User explicitly deselected ALL items
+            result = new Set();
+          } else {
+            // No explicit selection made - allow all items
+            result = combined;
+          }
+          
+          // If an item is marked for removal after use, remove it from downstream
+          if (current.removeAfterUse && current.selectedUseItem) {
+            result.delete(current.selectedUseItem);
+          }
+        }
+
+        return result;
+      });
+
+      // For convergence nodes (multiple parents), only items present on ALL paths are available
+      let finalResult = pathItemSets.length > 1
+        ? new Set(Array.from(pathItemSets[0]).filter(item => 
+            pathItemSets.every(set => set.has(item))
+          ))
+        : (pathItemSets[0] || new Set());
+
+      memo.set(nodeId, finalResult);
       visiting.delete(nodeId);
-      return items;
+      return finalResult;
     };
 
     // For the displayNode's upstream, compute from its parents (not including displayNode itself)
@@ -153,11 +331,18 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
       .filter(conn => conn.to === displayNode.id)
       .map(conn => conn.from);
 
-    const upstreamSet = new Set();
-    parents.forEach(pid => {
-      const set = itemsFromParents(pid);
-      set.forEach(i => upstreamSet.add(i));
-    });
+    if (parents.length === 0) {
+      return [];
+    }
+
+    // For convergence nodes, compute each parent path and intersect
+    const pathItemSets = parents.map(pid => itemsFromParents(pid));
+    
+    const upstreamSet = parents.length > 1
+      ? new Set(Array.from(pathItemSets[0]).filter(item => 
+          pathItemSets.every(set => set.has(item))
+        ))
+      : pathItemSets[0];
 
     return Array.from(upstreamSet).sort((a, b) => a.localeCompare(b));
   };
@@ -174,6 +359,57 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
     const exists = baseSelection.includes(item);
     const newItems = exists ? baseSelection.filter(i => i !== item) : [...baseSelection, item];
     onUpdateNode(displayNode.id, { items: newItems, itemsSelectionInitialized: true });
+  };
+
+  const handleUseItemSelect = (itemName) => {
+    setSelectedUseItem(itemName);
+    setRemoveAfterUse(false);
+    
+    // If we're switching from a previous item that was marked for removal, 
+    // restore it to the inventory
+    let updatedItems = Array.isArray(currentNode?.items) ? [...currentNode.items] : [];
+    
+    if (selectedUseItem && currentNode?.removeAfterUse && !updatedItems.includes(selectedUseItem)) {
+      // Add back the previously removed item
+      updatedItems.push(selectedUseItem);
+    }
+    
+    // Initialize items list with all upstream items if not already set
+    if (updatedItems.length === 0) {
+      updatedItems = [...upstreamItems];
+    }
+    
+    onUpdateNode(displayNode.id, { 
+      items: updatedItems,
+      selectedUseItem: itemName,
+      removeAfterUse: false
+    });
+  };
+
+  const handleRemoveAfterUseChange = (checked) => {
+    setRemoveAfterUse(checked);
+    if (displayNode && selectedUseItem) {
+      if (checked) {
+        // Remove the selected item from the items list
+        const newItems = (currentNode?.items || []).filter(item => item !== selectedUseItem);
+        onUpdateNode(displayNode.id, { 
+          items: newItems,
+          removeAfterUse: checked
+        });
+      } else {
+        // Add the selected item back to the items list
+        const newItems = Array.isArray(currentNode?.items) ? [...currentNode.items] : [];
+        if (!newItems.includes(selectedUseItem)) {
+          newItems.push(selectedUseItem);
+          onUpdateNode(displayNode.id, { 
+            items: newItems,
+            removeAfterUse: checked
+          });
+        } else {
+          onUpdateNode(displayNode.id, { removeAfterUse: checked });
+        }
+      }
+    }
   };
 
   const handleTitleChange = (e) => {
@@ -282,61 +518,78 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
       </div>
 
       {isGetItemNode ? (
-        <div className="panel-section">
-          <label className="panel-label">Item Obtained</label>
-          <p className="panel-hint">This item will be available in all future connected nodes</p>
-
-          <div className="add-item-form input-with-icon">
-            <input
-              type="text"
-              className="panel-input"
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddItem()}
-              placeholder="Add item..."
-            />
-            <button className="input-icon-button" onClick={handleAddItem} title="Add item">
-              <img src="/icons/add.svg" alt="Add" />
-            </button>
-          </div>
-
-          <div className="items-list">
-            {(currentNode?.items || displayNode.items || []).map((item, index) => (
-              <div key={index} className="item-chip">
-                <span>{item}</span>
-                <button className="remove-button" onClick={() => handleRemoveItem(index)} title="Remove item">
-                  <img src="/icons/close.svg" alt="Remove" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : isUseItemNode ? (
-        <div className="panel-section">
-          <label className="panel-label">Use Item</label>
-          <p className="panel-hint">Toggle items to use at this node (turn off if item breaks)</p>
-          {upstreamItems.length === 0 ? (
-            <div className="panel-note">No available items from previous nodes.</div>
-          ) : (
+        <>
+          <div className="panel-section">
+            <label className="panel-label">Inventory</label>
+            <p className="panel-hint">The items collected up to this point</p>
             <div className="items-list">
-              {upstreamItems.map((item, index) => {
-                const initialized = !!currentNode?.itemsSelectionInitialized;
-                const checked = initialized ? (Array.isArray(currentNode?.items) ? currentNode.items.includes(item) : false) : true; // default on when not initialized
-                return (
-                  <div key={index} className={`item-chip use-item-chip ${checked ? 'active' : ''}`} onClick={() => handleToggleUseItem(item)}>
-                    <input type="checkbox" checked={checked} readOnly />
+              {upstreamItems.map((item, index) => (
+                <div key={index} className="item-chip item-chip-readonly">
+                  <span>{item}</span>
+                </div>
+              ))}
+              {(currentNode?.items || displayNode.items || []).map((item, index) => (
+                <div key={`new-${index}`} className="item-chip item-chip-readonly item-chip-highlighted">
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : isUseItemNode ? (
+        <>
+          <div className="panel-section">
+            <label className="panel-label">Use Item</label>
+            <div className="use-item-form">
+              <label htmlFor="item-select" className="form-label">Item to use</label>
+              <select
+                id="item-select"
+                className="panel-input"
+                value={selectedUseItem}
+                onChange={(e) => handleUseItemSelect(e.target.value)}
+              >
+                <option value="">Select an item...</option>
+                {upstreamItems.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+              {selectedUseItem && (
+                <div className="checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    id="remove-after-use"
+                    checked={removeAfterUse}
+                    onChange={(e) => handleRemoveAfterUseChange(e.target.checked)}
+                  />
+                  <label htmlFor="remove-after-use">Remove from inventory after use</label>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="panel-section">
+            <label className="panel-label">Inventory</label>
+            <p className="panel-hint">The items collected up to this point</p>
+            {upstreamItems.length === 0 ? (
+              <div className="panel-note">No available items from previous nodes.</div>
+            ) : (
+              <div className="items-list">
+                {upstreamItems.map((item, index) => (
+                  <div key={index} className="item-chip item-chip-readonly">
                     <span>{item}</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       ) : (
-        availableItems.length > 0 && (
-          <div className="panel-section">
-            <label className="panel-label">Available Items</label>
-            <p className="panel-hint">Items collected from previous nodes</p>
+        <div className="panel-section">
+          <label className="panel-label">Inventory</label>
+          <p className="panel-hint">The items collected up to this point</p>
+          {availableItems.length === 0 ? (
+            <div className="panel-note">No items collected yet.</div>
+          ) : (
             <div className="items-list">
               {availableItems.map((item, index) => (
                 <div key={index} className="item-chip item-chip-readonly">
@@ -344,8 +597,8 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
                 </div>
               ))}
             </div>
-          </div>
-        )
+          )}
+        </div>
       )}
 
       <div className="panel-section">
