@@ -167,7 +167,7 @@ const GraphNode = ({
     <div
       ref={nodeRef}
       data-node-id={node.id}
-      className={`graph-node ${isSelected ? 'selected' : ''} ${isCommandPressed ? 'disconnect-mode' : ''} ${isConnecting ? 'connecting' : ''}`}
+      className={`graph-node ${node.type} ${isSelected ? 'selected' : ''} ${isCommandPressed ? 'disconnect-mode' : ''} ${isConnecting ? 'connecting' : ''}`}
       style={{
         left: node.position.x,
         top: node.position.y,

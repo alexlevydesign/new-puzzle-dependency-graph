@@ -11,6 +11,12 @@
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
+.graph-node.GET_ITEM,
+.graph-node.USE_ITEM {
+  border-radius: 50%;
+  text-align: center;
+}
+
 .graph-node:active {
   cursor: grabbing;
 }
@@ -85,6 +91,8 @@ padding-top: 16px;
   margin-bottom: 4px;
 }
 
+
+
 .node-title {
   font-size: 16px;
   font-weight: 500;
@@ -104,6 +112,18 @@ padding-top: 16px;
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 8px;
+}
+
+.graph-node.GET_ITEM .node-items,
+.graph-node.USE_ITEM .node-items {
+  display: none;
+}
+
+.graph-node.GET_ITEM .node-icon-container,
+.graph-node.USE_ITEM .node-icon-container {
+  top: -8px;
+  left: 6px;
+  /* width: 40px; */
 }
 
 .node-item-badge {
