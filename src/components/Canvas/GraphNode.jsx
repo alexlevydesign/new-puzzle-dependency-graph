@@ -14,11 +14,14 @@ const GraphNode = ({
   onDragEnd,
   onConnectionStart,
   onConnectionDrag,
-  onConnectionEnd
+  onConnectionEnd,
+  onAddNodeBelow,
+  hasOutgoingConnection
 }) => {
   const nodeRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isHoveringBelow, setIsHoveringBelow] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
@@ -145,6 +148,21 @@ const GraphNode = ({
     e.currentTarget.classList.remove('hover');
   };
 
+  const handleBelowMouseEnter = () => {
+    setIsHoveringBelow(true);
+  };
+
+  const handleBelowMouseLeave = () => {
+    setIsHoveringBelow(false);
+  };
+
+  const handleAddNodeBelowClick = (e) => {
+    e.stopPropagation();
+    if (onAddNodeBelow) {
+      onAddNodeBelow(node);
+    }
+  };
+
   return (
     <div
       ref={nodeRef}
@@ -192,6 +210,24 @@ const GraphNode = ({
         onMouseEnter={handleConnectionPointMouseEnter}
         onMouseLeave={handleConnectionPointMouseLeave}
       />
+
+      {!hasOutgoingConnection && (
+        <div
+          className="node-add-below-zone"
+          onMouseEnter={handleBelowMouseEnter}
+          onMouseLeave={handleBelowMouseLeave}
+        >
+          {isHoveringBelow && (
+            <button
+              className="node-add-below-button"
+              onClick={handleAddNodeBelowClick}
+              title="Add node below"
+            >
+              +
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

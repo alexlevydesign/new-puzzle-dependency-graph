@@ -359,6 +359,22 @@ const Canvas = ({
     setInsertionPreview(null);
   };
 
+  const handleAddNodeBelow = (sourceNode) => {
+    // Create new node below with some vertical spacing
+    const spacing = 120; // Vertical spacing between nodes
+    const newPosition = {
+      x: sourceNode.position.x,
+      y: sourceNode.position.y + spacing
+    };
+
+    // Show context menu at this position so user can choose node type
+    setContextMenu({
+      position: newPosition,
+      sourceNodeId: sourceNode.id,
+      isAddingBelow: true
+    });
+  };
+
   const handleConnectionStart = (nodeId, position, isFromInput = false) => {
     // If dragging from input, just remove the connection (no reconnection)
     if (isFromInput) {
@@ -420,6 +436,9 @@ const Canvas = ({
       onConnectionRemove(from, to);
       onConnectionCreate(from, newNode.id);
       onConnectionCreate(newNode.id, to);
+    } else if (contextMenu.isAddingBelow && contextMenu.sourceNodeId) {
+      // We're adding a node below the source node
+      onConnectionCreate(contextMenu.sourceNodeId, newNode.id);
     } else if (contextMenu.sourceNodeId) {
       // We're connecting from a source node to the new node
       onConnectionCreate(contextMenu.sourceNodeId, newNode.id);
@@ -543,23 +562,30 @@ const Canvas = ({
         )}
       </svg>
 
-      {nodes.map(node => (
-        <GraphNode
-          key={node.id}
-          node={node}
-          isSelected={selectedNode?.id === node.id}
-          isCommandPressed={commandPressed}
-          zoom={zoom}
-          pan={pan}
-          onSelect={onNodeSelect}
-          onDragStart={handleNodeDragStart}
-          onDrag={handleNodeDrag}
-          onDragEnd={handleNodeDragEnd}
-          onConnectionStart={handleConnectionStart}
-          onConnectionDrag={handleConnectionDrag}
-          onConnectionEnd={handleConnectionEnd}
-        />
-      ))}
+      {nodes.map(node => {
+        // Check if this node has any outgoing connections
+        const hasOutgoingConnection = connections.some(conn => conn.from === node.id);
+        
+        return (
+          <GraphNode
+            key={node.id}
+            node={node}
+            isSelected={selectedNode?.id === node.id}
+            isCommandPressed={commandPressed}
+            zoom={zoom}
+            pan={pan}
+            onSelect={onNodeSelect}
+            onDragStart={handleNodeDragStart}
+            onDrag={handleNodeDrag}
+            onDragEnd={handleNodeDragEnd}
+            onConnectionStart={handleConnectionStart}
+            onConnectionDrag={handleConnectionDrag}
+            onConnectionEnd={handleConnectionEnd}
+            onAddNodeBelow={handleAddNodeBelow}
+            hasOutgoingConnection={hasOutgoingConnection}
+          />
+        );
+      })}
       </div>
 
       {/* Context Menu for Node Selection */}
