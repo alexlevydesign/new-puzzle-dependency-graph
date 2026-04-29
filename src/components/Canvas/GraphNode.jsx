@@ -171,7 +171,8 @@ const GraphNode = ({
       style={{
         left: node.position.x,
         top: node.position.y,
-        backgroundColor: config.color
+        backgroundColor: config.color,
+        border: config.borderColor
       }}
       onMouseDown={handleMouseDown}
     >
