@@ -185,7 +185,12 @@ const GraphNode = ({
       />
       
       <div className="node-header">
+        <div className="node-icon-container" style={
+          { border: config.borderColor, backgroundColor: config.color }
+          
+          }>
         <img src={config.icon} alt={config.label} className="node-icon" />
+        </div>
         <span className="node-type-label">{config.label}</span>
       </div>
       

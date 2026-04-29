@@ -1,7 +1,7 @@
 .graph-node {
   position: absolute;
   width: 200px;
-  min-height: 100px;
+  /* min-height: 100px; */
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: grab;
@@ -32,17 +32,32 @@
   cursor: crosshair;
 }
 
-.node-header {
+/* .node-header {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+} */
+
+
+.node-icon-container {
+  /* border: #000 solid 1px; */
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  display: flex;
+  position: absolute;
+  top: -20px;
+  left: -20px;
 }
 
 .node-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
@@ -55,29 +70,31 @@
 }
 
 .node-content {
-  padding: 12px;
+padding-left: 12px;
+padding-right: 12px;
+
+padding-bottom: 16px;
+padding-top: 16px;
 }
 
 .node-type-label-above {
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
+  font-size: 12px;
+  font-weight: 300;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  /* letter-spacing: 0.6px; */
   margin-bottom: 4px;
 }
 
 .node-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
+  /* margin-bottom: 4px; */
   word-wrap: break-word;
 }
 
 .node-description {
   font-size: 12px;
-  color: #666;
+  color: #000 !important;
   line-height: 1.4;
   word-wrap: break-word;
 }
