@@ -64,7 +64,7 @@ const ConnectionLine = ({ from, to, isHighlighted, isTemp, onInsertClick }) => {
             x={midX}
             y={midY}
             className="insert-button-icon"
-            onClick={() => onInsertClick && onInsertClick(midX, midY)}
+            onClick={(e) => onInsertClick && onInsertClick(midX, midY, e)}
           >
             +
           </text>

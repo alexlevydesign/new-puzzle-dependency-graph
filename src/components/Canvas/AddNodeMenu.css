@@ -1,0 +1,70 @@
+.add-node-menu {
+  position: fixed;
+  width: 250px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.add-node-menu-item {
+  display: flex;
+  align-items: stretch;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  height: 52px;
+}
+
+.add-node-menu-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.menu-item-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  flex-shrink: 0;
+  transition: width 500ms linear(0, 0.16 3.6%, 0.58 9.5%, 0.92 14.8%, 1.12 20.3%, 1.19 25%, 1.17 29.8%, 1.07 35.7%, 0.98 42.9%, 0.96 48.2%, 0.97 53.6%, 1 63.1%, 1.01 70.2%, 1 83.3%, 1);
+  box-sizing: border-box;
+}
+
+/* Connect the borders better vertically */
+.add-node-menu-item:first-child .menu-item-icon-container {
+  border-top-left-radius: 4px;
+}
+.add-node-menu-item:last-child .menu-item-icon-container {
+  border-bottom-left-radius: 4px;
+}
+
+.add-node-menu-item:hover .menu-item-icon-container {
+  width: 68px;
+}
+
+.menu-item-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  transition: transform 500ms linear(0, 0.16 3.6%, 0.58 9.5%, 0.92 14.8%, 1.12 20.3%, 1.19 25%, 1.17 29.8%, 1.07 35.7%, 0.98 42.9%, 0.96 48.2%, 0.97 53.6%, 1 63.1%, 1.01 70.2%, 1 83.3%, 1);
+}
+
+.add-node-menu-item:hover .menu-item-icon {
+  transform: rotate(-15deg);
+}
+
+.menu-item-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  padding-right: 16px;
+}

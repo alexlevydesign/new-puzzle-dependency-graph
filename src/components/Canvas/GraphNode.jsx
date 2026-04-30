@@ -15,7 +15,7 @@ const GraphNode = ({
   onConnectionStart,
   onConnectionDrag,
   onConnectionEnd,
-  onAddNodeBelow,
+  onShowAddNodeMenu,
   hasOutgoingConnection
 }) => {
   const nodeRef = useRef(null);
@@ -35,7 +35,7 @@ const GraphNode = ({
   }, [zoom, pan]);
 
   const handleMouseDown = (e) => {
-    if (e.target.closest('.node-connection-point')) return;
+    if (e.target.closest('.node-connection-point') || e.target.closest('.node-add-below-zone')) return;
     
     e.stopPropagation();
     onSelect(node);
@@ -158,8 +158,11 @@ const GraphNode = ({
 
   const handleAddNodeBelowClick = (e) => {
     e.stopPropagation();
-    if (onAddNodeBelow) {
-      onAddNodeBelow(node);
+    const button = e.target.closest('.node-add-below-button');
+    // Show the menu at the button's position and pass the origin node
+    if (onShowAddNodeMenu && button) {
+      const rect = button.getBoundingClientRect();
+      onShowAddNodeMenu(node, rect);
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import './Canvas.css';
 import GraphNode from './GraphNode.jsx';
 import ConnectionLine from './ConnectionLine.jsx';
+import AddNodeMenu from './AddNodeMenu.jsx';
 import { NODE_CONFIG, NODE_TYPES } from '../../constants/nodeTypes.jsx';
 
 const Canvas = ({
@@ -27,6 +28,9 @@ const Canvas = ({
   const [commandPressed, setCommandPressed] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [contextMenuPosition, setContextMenuPosition] = useState({ left: 0, top: 0 });
+  const [addNodeMenu, setAddNodeMenu] = useState(null);
+  const [sourceNodeForMenu, setSourceNodeForMenu] = useState(null);
+  const [connectionForMenu, setConnectionForMenu] = useState(null);
   
   // Pan and Zoom state
   const [zoom, setZoom] = useState(1);
@@ -359,20 +363,74 @@ const Canvas = ({
     setInsertionPreview(null);
   };
 
-  const handleAddNodeBelow = (sourceNode) => {
-    // Create new node below with some vertical spacing
-    const spacing = 120; // Vertical spacing between nodes
-    const newPosition = {
-      x: sourceNode.position.x,
-      y: sourceNode.position.y + spacing
-    };
+  const handleAddNodeBelow = (sourceNode, nodeType) => {
+    // If a specific nodeType is provided, create the node immediately
+    if (nodeType) {
+      const spacing = 120; // Vertical spacing between nodes
+      const newPosition = {
+        x: sourceNode.position.x,
+        y: sourceNode.position.y + spacing
+      };
 
-    // Show context menu at this position so user can choose node type
-    setContextMenu({
-      position: newPosition,
-      sourceNodeId: sourceNode.id,
-      isAddingBelow: true
-    });
+      const newNode = onAddNode(nodeType, newPosition);
+      
+      // Connect the source node to the new node
+      onConnectionCreate(sourceNode.id, newNode.id);
+      
+      // Select the new node
+      onNodeSelect(newNode);
+      setAddNodeMenu(null);
+      setSourceNodeForMenu(null);
+      return;
+    }
+  };
+
+  const handleAddNodeMenuSelect = (nodeType) => {
+    if (sourceNodeForMenu) {
+      handleAddNodeBelow(sourceNodeForMenu, nodeType);
+    } else if (connectionForMenu) {
+      // Calculate a midpoint position for the new node
+      const fromNode = nodes.find(n => n.id === connectionForMenu.from);
+      const toNode = nodes.find(n => n.id === connectionForMenu.to);
+      
+      let newPosition = { x: 0, y: 0 };
+      if (fromNode && toNode) {
+        newPosition = {
+          x: (fromNode.position.x + toNode.position.x) / 2,
+          // Shift this mid point down just slightly to leave room for the incoming connection arrow maybe, or leave centered
+          y: ((fromNode.position.y + toNode.position.y) / 2) + 60
+        };
+      }
+      
+      const newNode = onAddNode(nodeType, newPosition);
+      
+      // Insert between the connection
+      if (onInsertNodeBetween) {
+        onInsertNodeBetween(newNode.id, connectionForMenu.from, connectionForMenu.to);
+      }
+      
+      // Select the new node
+      onNodeSelect(newNode);
+      setAddNodeMenu(null);
+      setConnectionForMenu(null);
+    }
+  };
+
+  const handleAddNodeMenuClose = () => {
+    setAddNodeMenu(null);
+    setSourceNodeForMenu(null);
+    setConnectionForMenu(null);
+  };
+
+  const handleShowAddNodeMenu = (node, buttonRect) => {
+    if (buttonRect && node) {
+      setSourceNodeForMenu(node);
+      setConnectionForMenu(null); // Ensure we're not inserting between
+      setAddNodeMenu({
+        x: buttonRect.left + (buttonRect.width / 2) - 100, // Center the 200px menu horizontally under the button
+        y: buttonRect.bottom + 8
+      });
+    }
   };
 
   const handleConnectionStart = (nodeId, position, isFromInput = false) => {
@@ -455,12 +513,21 @@ const Canvas = ({
     setContextMenu(null);
   };
 
-  const handleConnectionLineInsertClick = (conn, midX, midY) => {
-    // Show context menu at midpoint of connection line
-    // Store the connection info so we can insert a node between them
-    setContextMenu({
-      position: { x: midX, y: midY },
-      insertBetween: { from: conn.from, to: conn.to }
+  const handleConnectionLineInsertClick = (conn, midX, midY, e) => {
+    e.stopPropagation();
+    
+    // Instead of using contextMenu, we use the unified AddNodeMenu
+    const rect = e.target.getBoundingClientRect();
+    
+    // We can store the connection info in the same state structure or a new one
+    // Let's use a new state: setConnectionForMenu(conn) so AddNodeMenu knows what it's inserting between
+    setConnectionForMenu(conn);
+    setSourceNodeForMenu(null); // Ensure we're not inserting below
+    
+    // Calculate nicely below the SVG icon circle (r=16, but bounding box includes padding)
+    setAddNodeMenu({
+      x: rect.left + (rect.width / 2) - 100, // Center the 200px menu
+      y: rect.bottom + 8
     });
   };
 
@@ -549,7 +616,7 @@ const Canvas = ({
                 y: toNode.position.y
               }}
               isHighlighted={isHighlighted}
-              onInsertClick={(midX, midY) => handleConnectionLineInsertClick(conn, midX, midY)}
+              onInsertClick={(midX, midY, e) => handleConnectionLineInsertClick(conn, midX, midY, e)}
             />
           );
         })}
@@ -581,7 +648,7 @@ const Canvas = ({
             onConnectionStart={handleConnectionStart}
             onConnectionDrag={handleConnectionDrag}
             onConnectionEnd={handleConnectionEnd}
-            onAddNodeBelow={handleAddNodeBelow}
+            onShowAddNodeMenu={handleShowAddNodeMenu}
             hasOutgoingConnection={hasOutgoingConnection}
           />
         );
@@ -626,6 +693,15 @@ const Canvas = ({
         <button onClick={handleResetView} title="Reset View">⟲</button>
         <span className="zoom-level">{Math.round(zoom * 100)}%</span>
       </div>
+
+      {/* Add Node Menu */}
+      {addNodeMenu && (
+        <AddNodeMenu
+          position={addNodeMenu}
+          onSelectNodeType={handleAddNodeMenuSelect}
+          onClose={handleAddNodeMenuClose}
+        />
+      )}
     </div>
   );
 };
