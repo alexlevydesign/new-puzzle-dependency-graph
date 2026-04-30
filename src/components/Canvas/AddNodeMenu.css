@@ -33,6 +33,7 @@
   box-sizing: border-box;
 }
 
+
 /* Connect the borders better vertically */
 .add-node-menu-item:first-child .menu-item-icon-container {
   border-top-left-radius: 4px;
