@@ -3,7 +3,81 @@ import './App.css';
 import Sidebar from './components/Sidebar/Sidebar.jsx';
 import Canvas from './components/Canvas/Canvas.jsx';
 import NodePropertiesPanel from './components/NodePropertiesPanel/NodePropertiesPanel.jsx';
-import { NODE_CONFIG } from './constants/nodeTypes.jsx';
+import { NODE_CONFIG, NODE_TYPES } from './constants/nodeTypes.jsx';
+
+// Default nodes for first-time users
+const getDefaultNodes = () => [
+  {
+    id: 1,
+    type: NODE_TYPES.PLAYER_ACTION,
+    title: 'Player picks up key',
+    description: '',
+    position: { x: 100, y: 100 },
+    items: [],
+    tags: [],
+    dependencies: []
+  },
+  {
+    id: 2,
+    type: NODE_TYPES.GET_ITEM,
+    title: 'Key',
+    description: '',
+    position: { x: 400, y: 100 },
+    items: ['Key'],
+    tags: [],
+    dependencies: []
+  },
+  {
+    id: 3,
+    type: NODE_TYPES.USE_ITEM,
+    title: 'Use key on door',
+    description: '',
+    position: { x: 700, y: 100 },
+    items: ['Key'],
+    tags: [],
+    dependencies: [],
+    selectedUseItem: 'Key',
+    removeAfterUse: false
+  },
+  {
+    id: 4,
+    type: NODE_TYPES.STORY_STATE,
+    title: 'Door is unlocked',
+    description: '',
+    position: { x: 1000, y: 100 },
+    items: [],
+    tags: [],
+    dependencies: []
+  },
+  {
+    id: 5,
+    type: NODE_TYPES.CHARACTER_ACTION,
+    title: 'NPC congratulates player',
+    description: '',
+    position: { x: 550, y: 300 },
+    items: [],
+    tags: [],
+    dependencies: []
+  },
+  {
+    id: 6,
+    type: NODE_TYPES.GOAL,
+    title: 'Reach the treasure room',
+    description: '',
+    position: { x: 1000, y: 300 },
+    items: [],
+    tags: [],
+    dependencies: []
+  }
+];
+
+const getDefaultConnections = () => [
+  { from: 1, to: 2 },
+  { from: 2, to: 3 },
+  { from: 3, to: 4 },
+  { from: 3, to: 5 },
+  { from: 4, to: 6 }
+];
 
 function App() {
   // Load initial state from localStorage
@@ -21,10 +95,11 @@ function App() {
     } catch (error) {
       console.error('Error loading from localStorage:', error);
     }
+    // First load - return default nodes
     return {
-      nodes: [],
-      connections: [],
-      nextNodeId: 1
+      nodes: getDefaultNodes(),
+      connections: getDefaultConnections(),
+      nextNodeId: 7
     };
   };
 
@@ -274,6 +349,16 @@ function App() {
     }
   }, [nodes.length, connections.length]);
 
+  const resetBoard = useCallback(() => {
+    const defaultNodes = getDefaultNodes();
+    const defaultConnections = getDefaultConnections();
+    setNodes(defaultNodes);
+    setConnections(defaultConnections);
+    setNextNodeId(7);
+    setSelectedNode(null);
+    // This will auto-save to localStorage via the useEffect
+  }, []);
+
   // Close options menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -333,6 +418,15 @@ function App() {
             </button>
             {showOptionsMenu && (
               <div className="options-dropdown">
+                <button 
+                  className="options-menu-item" 
+                  onClick={() => {
+                    resetBoard();
+                    setShowOptionsMenu(false);
+                  }}
+                >
+                  Load example
+                </button>
                 <button 
                   className="options-menu-item" 
                   onClick={() => {
