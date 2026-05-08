@@ -1,0 +1,29 @@
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    position: relative;
+    background-color: #FCFCFC;
+
+
+}
+
+
+.menu-items-container {
+    background-color: #FCFCFC;
+    border: 1px solid #D5D5D5;
+    border-radius: .25rem;
+    overflow: hidden;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.15);
+    position: absolute;
+    top: 51px;
+    left: 0;
+    right:0;
+
+
+
+}
+
+.menu-items-container :last-child {
+    border-bottom: none;
+}

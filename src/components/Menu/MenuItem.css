@@ -1,0 +1,21 @@
+.menu-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: .75rem 1rem;
+    background-color: #FCFCFC;
+    border-bottom: 1px solid #D5D5D5;
+}
+
+.menu-item img {
+    width: 1rem;
+}
+
+.menu-item p {
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.menu-item:hover {
+    background-color: #D5D5D5;
+}

@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import './NodePropertiesPanel.css';
 import { NODE_CONFIG, NODE_TYPES } from '../../constants/nodeTypes.jsx';
 
+import Menu from '../Menu/Menu.jsx';
+import Button from '../Button/Button.jsx';
+import MenuItem from '../Menu/MenuItem.jsx';
+
 const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, nodes }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -484,6 +488,32 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
           🗑️
         </button>
       </div>
+
+      <div className='panel-section'>
+        <Menu>
+          <MenuItem 
+            label="Option 1" 
+            icon="undo" 
+            onClick={() => console.log('Undo')} 
+          />
+          <MenuItem 
+            label="Option 2" 
+            icon="redo" 
+            onClick={() => console.log('Redo')}
+          />
+          <MenuItem 
+            label="Option 3" 
+            icon="download" 
+            onClick={() => console.log('Download')}
+          />
+          <MenuItem 
+            label="Option 4" 
+            icon="upload" 
+            onClick={() => console.log('Upload')} 
+          />
+        </Menu>
+      </div>
+      
 
       <div className="panel-section">
         <label className="panel-label">Type</label>
