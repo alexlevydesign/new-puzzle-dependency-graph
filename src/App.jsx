@@ -116,6 +116,7 @@ function App() {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const isUndoRedoAction = useRef(false);
+  const historyTimeoutRef = useRef(null);
 
   // Save to localStorage whenever state changes
   useEffect(() => {
@@ -133,38 +134,53 @@ function App() {
     }
   }, [nodes, connections, nextNodeId]);
 
-  // Save state to history whenever nodes or connections change
+  // Save state to history whenever nodes or connections change (debounced)
   useEffect(() => {
     if (isUndoRedoAction.current) {
       isUndoRedoAction.current = false;
       return;
     }
 
-    const currentState = {
-      nodes,
-      connections,
-      nextNodeId,
-      selectedNode
-    };
+    // Clear existing timeout
+    if (historyTimeoutRef.current) {
+      clearTimeout(historyTimeoutRef.current);
+    }
 
-    setHistory(prev => {
-      // Remove any future history if we're not at the end
-      const newHistory = prev.slice(0, historyIndex + 1);
-      // Add current state
-      newHistory.push(currentState);
-      // Limit history to 50 states to prevent memory issues
-      if (newHistory.length > 50) {
-        newHistory.shift();
+    // Set new timeout to save history after 500ms of inactivity
+    historyTimeoutRef.current = setTimeout(() => {
+      const currentState = {
+        nodes,
+        connections,
+        nextNodeId,
+        selectedNode
+      };
+
+      setHistory(prev => {
+        // Remove any future history if we're not at the end
+        const newHistory = prev.slice(0, historyIndex + 1);
+        // Add current state
+        newHistory.push(currentState);
+        // Limit history to 50 states to prevent memory issues
+        if (newHistory.length > 50) {
+          newHistory.shift();
+          return newHistory;
+        }
         return newHistory;
-      }
-      return newHistory;
-    });
+      });
 
-    setHistoryIndex(prev => {
-      const newIndex = prev + 1;
-      return newIndex >= 50 ? 49 : newIndex;
-    });
-  }, [nodes, connections, nextNodeId, selectedNode]);
+      setHistoryIndex(prev => {
+        const newIndex = prev + 1;
+        return newIndex >= 50 ? 49 : newIndex;
+      });
+    }, 500);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (historyTimeoutRef.current) {
+        clearTimeout(historyTimeoutRef.current);
+      }
+    };
+  }, [nodes, connections, nextNodeId, selectedNode, historyIndex]);
 
   const undo = useCallback(() => {
     if (historyIndex <= 0) return;
