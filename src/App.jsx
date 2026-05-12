@@ -340,7 +340,7 @@ function App() {
             setNextNodeId(data.nextNodeId);
             setSelectedNode(null);
             // State will auto-save to localStorage via useEffect
-            alert('Successfully imported puzzle flow!');
+            alert('Successfully imported file');
           } else {
             alert('Invalid file format. Please select a valid PuzzFlow export file.');
           }
@@ -392,16 +392,17 @@ function App() {
           </div>
         </div>
         <div className="app-header-actions parent">
-          <div className='app-header-actions'>
+          <div className='app-header-actions small-space'>
             <Button 
-            variant='outline'
+            variant='ghost'
             icon="undo"
             onClick={undo}
             disabled={!canUndo}
             title="Undo (Cmd+Z)"
             />
+            <div className='divider'></div>
             <Button 
-            variant='outline'
+            variant='ghost'
             icon="redo"
             onClick={redo}
             disabled={!canRedo}

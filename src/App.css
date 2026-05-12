@@ -137,3 +137,17 @@
   overflow: hidden;
   position: relative;
 }
+
+.no-space {
+  gap: 0;
+}
+
+.small-space {
+  gap: .25rem;
+}
+
+.divider {
+  background-color: #e0e0e0;
+  width: 1px;
+  height: 100%;
+}
