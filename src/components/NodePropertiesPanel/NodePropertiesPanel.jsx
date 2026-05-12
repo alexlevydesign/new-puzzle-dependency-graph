@@ -490,7 +490,11 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
       </div>
 
       <div className='panel-section'>
-        <Menu>
+        <Menu 
+        
+        align='left'
+        
+        >
           <MenuItem 
             label="Option 1" 
             icon="undo" 

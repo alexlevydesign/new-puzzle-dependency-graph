@@ -5,6 +5,7 @@
     padding: .75rem 1rem;
     background-color: #FCFCFC;
     border-bottom: 1px solid #D5D5D5;
+    gap: 2.5rem;
 }
 
 .menu-item img {
@@ -19,4 +20,12 @@
 
 .menu-item:hover {
     background-color: #D5D5D5;
+}
+
+.danger p {
+    color: #BC0000 !important;
+}
+
+.danger img {
+    filter: invert(15%) sepia(97%) saturate(7456%) hue-rotate(358deg) brightness(71.9%) contrast(115%);
 }

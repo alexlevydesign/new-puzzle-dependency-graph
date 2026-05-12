@@ -4,8 +4,7 @@
     gap: .25rem;
     position: relative;
     background-color: #FCFCFC;
-
-
+    width: fit-content;
 }
 
 
@@ -16,12 +15,18 @@
     overflow: hidden;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.15);
     position: absolute;
-    top: 51px;
+    top: 40px;
+    width: max-content;
+}
+
+/* Align right edge of menu to right edge of button */
+.menu-items-container--right {
+    right: 0;
+}
+
+/* Align left edge of menu to left edge of button */
+.menu-items-container--left {
     left: 0;
-    right:0;
-
-
-
 }
 
 .menu-items-container :last-child {

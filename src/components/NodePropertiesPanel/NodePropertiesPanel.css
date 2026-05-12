@@ -8,6 +8,7 @@
   animation: slideIn 0.2s ease-out;
   transform-origin: right center;
   height: 100%;
+  z-index: 9999;
 }
 
 .node-properties-panel.closing {

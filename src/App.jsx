@@ -428,7 +428,11 @@ function App() {
             <img src="/icons/download.svg" alt="Export" />
             <span>Export</span>
           </button> */}
-          <Menu>
+          <Menu
+          
+          align='right'
+          
+          >
             <MenuItem 
             label="Import"
             icon="upload"
@@ -443,8 +447,9 @@ function App() {
             />
             <MenuItem 
               label="Reset board"
-              icon="reset"
+              icon="eraser"
               onClick={() => resetBoard()}
+              type='danger'
             />
             
             {/* <MenuItem 
