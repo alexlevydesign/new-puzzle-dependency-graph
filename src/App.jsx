@@ -5,6 +5,11 @@ import Canvas from './components/Canvas/Canvas.jsx';
 import NodePropertiesPanel from './components/NodePropertiesPanel/NodePropertiesPanel.jsx';
 import { NODE_CONFIG, NODE_TYPES } from './constants/nodeTypes.jsx';
 
+import Menu from './components/Menu/Menu.jsx';
+import MenuItem from './components/Menu/MenuItem.jsx';
+
+import Button from './components/Button/Button.jsx';
+
 // Default nodes for first-time users
 const getDefaultNodes = () => [
   {
@@ -110,7 +115,6 @@ function App() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [nextNodeId, setNextNodeId] = useState(initialState.nextNodeId);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   
   // History management for undo/redo
   const [history, setHistory] = useState([]);
@@ -375,20 +379,6 @@ function App() {
     // This will auto-save to localStorage via the useEffect
   }, []);
 
-  // Close options menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (showOptionsMenu && !e.target.closest('.options-menu-container')) {
-        setShowOptionsMenu(false);
-      }
-    };
-
-    if (showOptionsMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showOptionsMenu]);
-
   return (
     <div className="app">
       <header className="app-header">
@@ -397,7 +387,21 @@ function App() {
             Puzz<span className="app-title-accent">Flow</span>
           </h1>
           <div className="app-header-actions">
-            <button 
+            <Button 
+            variant='outline'
+            icon="undo"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo (Cmd+Z)"
+            />
+            <Button 
+            variant='outline'
+            icon="redo"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Cmd+Shift+Z)"
+            />
+            {/* <button 
               className="header-button header-icon-button" 
               onClick={undo} 
               disabled={!canUndo}
@@ -412,49 +416,43 @@ function App() {
               title="Redo (Cmd+Shift+Z)"
             >
               <img src="/icons/redo.svg" alt="Redo" />
-            </button>
+            </button> */}
           </div>
         </div>
         <div className="app-header-actions">
-          <button className="header-button" onClick={importData} title="Import project">
+          {/* <button className="header-button" onClick={importData} title="Import project">
             <img src="/icons/upload.svg" alt="Import" />
             <span>Import</span>
           </button>
           <button className="header-button" onClick={exportData} title="Export project">
             <img src="/icons/download.svg" alt="Export" />
             <span>Export</span>
-          </button>
-          <div className="options-menu-container">
-            <button 
-              className="header-button header-icon-button" 
-              onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-              title="Options"
-            >
-              <img src="/icons/options.svg" alt="Options" />
-            </button>
-            {showOptionsMenu && (
-              <div className="options-dropdown">
-                <button 
-                  className="options-menu-item" 
-                  onClick={() => {
-                    resetBoard();
-                    setShowOptionsMenu(false);
-                  }}
-                >
-                  Load example
-                </button>
-                <button 
-                  className="options-menu-item" 
-                  onClick={() => {
-                    clearCanvas();
-                    setShowOptionsMenu(false);
-                  }}
-                >
-                  Clear Canvas
-                </button>
-              </div>
-            )}
-          </div>
+          </button> */}
+          <Menu>
+            <MenuItem 
+            label="Import"
+            icon="upload"
+            onClick={importData}
+            title="Import project"
+            />
+            <MenuItem 
+            label="Export"
+            icon="download"
+            onClick={exportData}
+            title="Export project"
+            />
+            <MenuItem 
+              label="Reset board"
+              icon="reset"
+              onClick={() => resetBoard()}
+            />
+            
+            {/* <MenuItem 
+              label="Clear Canvas"
+              icon="eraser"
+              onClick={() => clearCanvas()}
+            /> */}
+          </Menu>
         </div>
       </header>
       <div className="app-content">

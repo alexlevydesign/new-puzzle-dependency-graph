@@ -1,26 +1,78 @@
 .button {
     display: flex;
-    flex-direction: row;
-    gap: .5rem;
-    justify-content: space-between;
-    padding: .75rem 1rem;
-    background-color: #FCFCFC;
-    border: 1px solid #D5D5D5;
-    border-radius: .25rem;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid;
     width: fit-content;
-    font-size: 1rem;
-    font-weight: 600;
+}
+
+.button-label {
+    line-height: 1;
 }
 
 .button img {
-    width: 1rem;
+    width: 16px;
+    height: 16px;
 }
 
-.button p {
-    font-size: 1rem;
-    font-weight: 600;
+/* Primary Variant */
+.button--primary {
+    background-color: #fff;
+    border-color: #000;
+    color: #000;
 }
 
-.button:hover {
+.button--primary:hover:not(:disabled) {
     background-color: #D5D5D5;
+    border-color: #1a1a1a;
+}
+
+.button--primary:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* Outline Variant */
+.button--outline {
+    background-color: transparent;
+    border-color: #d5d5d5;
+    color: #333;
+}
+
+.button--outline:hover:not(:disabled) {
+    background-color: #f5f5f5;
+    border-color: #999;
+}
+
+.button--outline:active:not(:disabled) {
+    background-color: #ebebeb;
+    transform: scale(0.98);
+}
+
+/* Ghost Variant */
+.button--ghost {
+    background-color: transparent;
+    border-color: transparent;
+    color: #333;
+}
+
+.button--ghost:hover:not(:disabled) {
+    background-color: #f5f5f5;
+    border-color: transparent;
+}
+
+.button--ghost:active:not(:disabled) {
+    background-color: #ebebeb;
+    transform: scale(0.98);
+}
+
+/* Disabled State */
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
