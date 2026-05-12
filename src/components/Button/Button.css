@@ -88,3 +88,11 @@
     opacity: 0.3;
     cursor: not-allowed;
 }
+
+.danger p {
+    color: #BC0000 !important;
+}
+
+.danger img {
+    filter: invert(15%) sepia(97%) saturate(7456%) hue-rotate(358deg) brightness(71.9%) contrast(115%);
+}

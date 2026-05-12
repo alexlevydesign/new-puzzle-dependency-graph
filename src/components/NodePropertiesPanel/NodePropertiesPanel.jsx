@@ -484,9 +484,12 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
     <aside className={`node-properties-panel ${isClosing ? 'closing' : ''}`}>
       <div className="panel-header">
         <h3>Node Properties</h3>
-        <button className="delete-button" onClick={handleDelete} title="Delete node">
-          🗑️
-        </button>
+        <Button 
+          onClick={handleDelete}
+          title="Delete node"
+          icon="delete"
+          variant="ghost"
+          />
       </div>
 
       {/* <div className='panel-section'>

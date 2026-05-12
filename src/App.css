@@ -13,7 +13,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 32px;
   /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
   border-bottom: 1px solid #e0e0e0;
   z-index: 99999;
@@ -39,6 +39,10 @@
 .app-header-actions {
   display: flex;
   gap: 12px;
+}
+
+.parent {
+  gap: 2rem;
 }
 
 .header-button {

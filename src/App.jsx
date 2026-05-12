@@ -387,6 +387,12 @@ function App() {
             Puzz<span className="app-title-accent">Flow</span>
           </h1>
           <div className="app-header-actions">
+            
+            
+          </div>
+        </div>
+        <div className="app-header-actions parent">
+          <div className='app-header-actions'>
             <Button 
             variant='outline'
             icon="undo"
@@ -401,33 +407,7 @@ function App() {
             disabled={!canRedo}
             title="Redo (Cmd+Shift+Z)"
             />
-            {/* <button 
-              className="header-button header-icon-button" 
-              onClick={undo} 
-              disabled={!canUndo}
-              title="Undo (Cmd+Z)"
-            >
-              <img src="/icons/undo.svg" alt="Undo" />
-            </button>
-            <button 
-              className="header-button header-icon-button" 
-              onClick={redo} 
-              disabled={!canRedo}
-              title="Redo (Cmd+Shift+Z)"
-            >
-              <img src="/icons/redo.svg" alt="Redo" />
-            </button> */}
           </div>
-        </div>
-        <div className="app-header-actions">
-          {/* <button className="header-button" onClick={importData} title="Import project">
-            <img src="/icons/upload.svg" alt="Import" />
-            <span>Import</span>
-          </button>
-          <button className="header-button" onClick={exportData} title="Export project">
-            <img src="/icons/download.svg" alt="Export" />
-            <span>Export</span>
-          </button> */}
           <Menu
           
           align='right'
