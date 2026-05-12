@@ -489,7 +489,7 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
         </button>
       </div>
 
-      <div className='panel-section'>
+      {/* <div className='panel-section'>
         <Menu 
         
         align='left'
@@ -516,7 +516,7 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
             onClick={() => console.log('Upload')} 
           />
         </Menu>
-      </div>
+      </div> */}
       
 
       <div className="panel-section">
