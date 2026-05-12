@@ -524,7 +524,7 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
 
       <div className="panel-section">
         <label className="panel-label">Type</label>
-        <div className="node-type-display" style={{ backgroundColor: config.color }}>
+        <div className="node-type-display" style={{ backgroundColor: config.color, border: config.borderColor }}>
           <img src={config.icon} alt={config.label} className="node-type-icon" />
           <span>{config.label}</span>
         </div>
