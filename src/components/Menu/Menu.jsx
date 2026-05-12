@@ -36,6 +36,7 @@ function Menu({ children, align = "right" }) {
                 label="Options"
                 icon="options"
                 onClick={toggleMenu}
+                active={isMenuOpen}
             >
 
             </Button>

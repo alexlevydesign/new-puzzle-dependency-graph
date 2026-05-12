@@ -1,11 +1,12 @@
 import "./Button.css"
 
-function Button({ label, icon, onClick, variant = "primary", disabled = false }) {
+function Button({ label, icon, onClick, variant = "primary", disabled = false, active = false }) {
     const variantClass = `button--${variant}`;
+    const activeClass = active ? 'button--active' : '';
     
     return (
         <button 
-            className={`button ${variantClass}`} 
+            className={`button ${variantClass} ${activeClass}`} 
             onClick={onClick}
             disabled={disabled}
         >
