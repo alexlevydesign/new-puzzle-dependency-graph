@@ -83,7 +83,8 @@ const AddNodeMenu = ({ position, onSelectNodeType, onClose }) => {
               className="menu-item-icon-container"
               style={{ 
                 backgroundColor: config.color, 
-                borderTop: index === 0 ? borderStyle : 'none',
+                // borderTop: index === 0 ? borderStyle : 'none',
+                borderTop: borderStyle,
                 borderBottom: borderStyle,
                 borderRight: borderStyle
               }}
