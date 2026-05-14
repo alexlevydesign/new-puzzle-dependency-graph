@@ -17,7 +17,7 @@ const getDefaultNodes = () => [
     type: NODE_TYPES.PLAYER_ACTION,
     title: 'Player picks up key',
     description: '',
-    position: { x: 100, y: 100 },
+    position: { x: 300, y: 100 },
     items: [],
     tags: [],
     dependencies: []
@@ -27,7 +27,7 @@ const getDefaultNodes = () => [
     type: NODE_TYPES.GET_ITEM,
     title: 'Key',
     description: '',
-    position: { x: 400, y: 100 },
+    position: { x: 300, y: 220 },
     items: ['Key'],
     tags: [],
     dependencies: []
@@ -37,7 +37,7 @@ const getDefaultNodes = () => [
     type: NODE_TYPES.USE_ITEM,
     title: 'Use key on door',
     description: '',
-    position: { x: 700, y: 100 },
+    position: { x: 300, y: 340 },
     items: ['Key'],
     tags: [],
     dependencies: [],
@@ -49,7 +49,7 @@ const getDefaultNodes = () => [
     type: NODE_TYPES.STORY_STATE,
     title: 'Door is unlocked',
     description: '',
-    position: { x: 1000, y: 100 },
+    position: { x: 300, y: 460 },
     items: [],
     tags: [],
     dependencies: []
@@ -59,7 +59,7 @@ const getDefaultNodes = () => [
     type: NODE_TYPES.CHARACTER_ACTION,
     title: 'NPC congratulates player',
     description: '',
-    position: { x: 550, y: 300 },
+    position: { x: 100, y: 580 },
     items: [],
     tags: [],
     dependencies: []
@@ -69,7 +69,7 @@ const getDefaultNodes = () => [
     type: NODE_TYPES.GOAL,
     title: 'Reach the treasure room',
     description: '',
-    position: { x: 1000, y: 300 },
+    position: { x: 500, y: 580 },
     items: [],
     tags: [],
     dependencies: []
