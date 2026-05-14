@@ -207,11 +207,9 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
         return result;
       });
 
-      // For convergence nodes (multiple parents), only items present on ALL paths are available
+      // For convergence nodes (multiple parents), items from ANY path are available (union logic)
       let finalResult = pathItemSets.length > 1
-        ? new Set(Array.from(pathItemSets[0]).filter(item => 
-            pathItemSets.every(set => set.has(item))
-          ))
+        ? new Set(pathItemSets.flatMap(set => Array.from(set)))
         : (pathItemSets[0] || new Set());
 
       memo.set(nodeId, finalResult);
@@ -318,11 +316,9 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
         return result;
       });
 
-      // For convergence nodes (multiple parents), only items present on ALL paths are available
+      // For convergence nodes (multiple parents), items from ANY path are available (union logic)
       let finalResult = pathItemSets.length > 1
-        ? new Set(Array.from(pathItemSets[0]).filter(item => 
-            pathItemSets.every(set => set.has(item))
-          ))
+        ? new Set(pathItemSets.flatMap(set => Array.from(set)))
         : (pathItemSets[0] || new Set());
 
       memo.set(nodeId, finalResult);
@@ -343,9 +339,7 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
     const pathItemSets = parents.map(pid => itemsFromParents(pid));
     
     const upstreamSet = parents.length > 1
-      ? new Set(Array.from(pathItemSets[0]).filter(item => 
-          pathItemSets.every(set => set.has(item))
-        ))
+      ? new Set(pathItemSets.flatMap(set => Array.from(set)))
       : pathItemSets[0];
 
     return Array.from(upstreamSet).sort((a, b) => a.localeCompare(b));
