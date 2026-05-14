@@ -4,7 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import MenuItem from "./MenuItem";
 import Button from "../Button/Button";
 
-function Menu({ children, align = "right" }) {
+function Menu({ 
+    children, 
+    align = "right",
+    label = "Options",
+    icon = "options",
+    variant = "primary",
+    buttonTitle,
+    buttonType,
+    ...buttonProps
+}) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null);
     
@@ -33,10 +42,14 @@ function Menu({ children, align = "right" }) {
     return (
         <div className="menu" ref={menuRef}>
             <Button
-                label="Options"
-                icon="options"
+                label={label}
+                icon={icon}
+                variant={variant}
+                title={buttonTitle}
+                type={buttonType}
                 onClick={toggleMenu}
                 active={isMenuOpen}
+                {...buttonProps}
             >
 
             </Button>

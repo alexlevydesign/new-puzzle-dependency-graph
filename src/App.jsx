@@ -412,6 +412,10 @@ function App() {
           <Menu
           
           align='right'
+          label='Options'
+          icon='options'
+          variant='ghost'
+          
           
           >
             <MenuItem 
