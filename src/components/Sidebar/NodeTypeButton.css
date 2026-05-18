@@ -60,3 +60,41 @@
   display: unset;
   transition: opacity 0.3s ease, max-width 0.3s ease;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .node-type-button {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .sidebar-expanded .node-type-button {
+    width: 50px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .sidebar-node-type-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .sidebar-expanded .sidebar-node-type-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .node-type-label {
+    display: none;
+  }
+
+  .sidebar-expanded .node-type-label {
+    display: none;
+  }
+
+  .node-type-button:hover {
+    transform: translateY(-4px);
+  }
+}

@@ -25,6 +25,10 @@ const GraphNode = ({
   const dragStartPos = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
+  
+  // Touch tracking for mobile tap detection
+  const touchStartRef = useRef(null);
+  const isMobileRef = useRef(false);
 
   const config = NODE_CONFIG[node.type];
 
@@ -52,6 +56,86 @@ const GraphNode = ({
       y: canvasY - node.position.y
     };
     onDragStart(node, e);
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.target.closest('.node-connection-point') || e.target.closest('.node-add-below-zone')) return;
+    
+    e.stopPropagation();
+    
+    // Mark that we're on mobile
+    isMobileRef.current = true;
+    
+    // Store the touch start position (we only select if it's a tap, not a drag)
+    if (e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now()
+      };
+      
+      // Start dragging without selecting yet
+      setIsDragging(true);
+      
+      const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
+      const canvasX = (touch.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+      const canvasY = (touch.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
+      
+      dragStartPos.current = {
+        x: canvasX - node.position.x,
+        y: canvasY - node.position.y
+      };
+      onDragStart(node, e);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStartRef.current || !isMobileRef.current) return;
+    
+    e.stopPropagation();
+    
+    const touch = e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null;
+    if (!touch) return;
+    
+    const touchEnd = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
+    };
+    
+    // Calculate distance moved
+    const dx = Math.abs(touchEnd.x - touchStartRef.current.x);
+    const dy = Math.abs(touchEnd.y - touchStartRef.current.y);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // If the touch moved less than 10px and lasted less than 300ms, treat it as a tap
+    const isTap = distance < 10 && (touchEnd.time - touchStartRef.current.time) < 300;
+    
+    // Only select the node if this was a tap (not a drag)
+    if (isTap) {
+      onSelect(node);
+    }
+    
+    setIsDragging(false);
+    onDragEnd();
+    touchStartRef.current = null;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    
+    // Handle touch move for dragging
+    const touch = e.touches && e.touches.length > 0 ? e.touches[0] : null;
+    if (!touch) return;
+    
+    const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
+    const canvasX = (touch.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+    const canvasY = (touch.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
+    
+    const newX = canvasX - dragStartPos.current.x;
+    const newY = canvasY - dragStartPos.current.y;
+    onDrag(node, { x: Math.max(0, newX), y: Math.max(0, newY) });
   };
 
   const handleMouseMove = (e) => {
@@ -178,6 +262,9 @@ const GraphNode = ({
         border: config.borderColor
       }}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div
         className="node-connection-point input"

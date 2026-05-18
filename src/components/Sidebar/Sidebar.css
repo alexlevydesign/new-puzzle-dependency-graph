@@ -120,3 +120,39 @@
   flex-direction: column;
   gap: 8px;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .sidebar {
+    position: relative;
+    top: auto;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 12px;
+    overflow-y: hidden;
+    overflow-x: auto;
+    flex-direction: row;
+    z-index: 100;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar-expanded {
+    width: 100%;
+  }
+
+  .sidebar-node-list {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    min-width: min-content;
+    padding-right: 12px;
+  }
+
+  .sidebar-section-title {
+    display: none;
+  }
+}

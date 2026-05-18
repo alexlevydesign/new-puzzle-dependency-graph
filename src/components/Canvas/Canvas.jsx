@@ -38,6 +38,11 @@ const Canvas = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [spacePressed, setSpacePressed] = useState(false);
+  
+  // Touch state for mobile navigation
+  const touchStartRef = useRef(null);
+  const lastTapTimeRef = useRef(0);
+  const touchPinchDistanceRef = useRef(0);
 
   // Track command key and space key
   useEffect(() => {
@@ -209,19 +214,10 @@ const Canvas = ({
       }
     };
 
-    const preventPinchZoom = (e) => {
-      // Prevent pinch-to-zoom on touch devices
-      if (e.touches && e.touches.length > 1) {
-        e.preventDefault();
-      }
-    };
-
     canvas.addEventListener('wheel', preventDefaultZoom, { passive: false });
-    canvas.addEventListener('touchmove', preventPinchZoom, { passive: false });
 
     return () => {
       canvas.removeEventListener('wheel', preventDefaultZoom);
-      canvas.removeEventListener('touchmove', preventPinchZoom);
     };
   }, []);
 
@@ -246,6 +242,109 @@ const Canvas = ({
     
     setZoom(newZoom);
   }, [zoom, pan]);
+
+  // Helper function to calculate distance between two touch points
+  const getTouchDistance = (touches) => {
+    if (touches.length < 2) return 0;
+    const [touch1, touch2] = touches;
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Touch handlers for mobile navigation
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      // Single touch - start panning
+      const touch = e.touches[0];
+      
+      // Detect double tap to reset zoom
+      const now = Date.now();
+      if (now - lastTapTimeRef.current < 300) {
+        // Double tap detected
+        e.preventDefault();
+        handleResetView();
+        lastTapTimeRef.current = 0;
+      } else {
+        lastTapTimeRef.current = now;
+        
+        // Start pan only if not clicking on a node or UI element
+        if (e.target === canvasRef.current || e.target === contentRef.current || e.target.classList.contains('canvas-connections')) {
+          e.preventDefault();
+          touchStartRef.current = {
+            x: touch.clientX - pan.x,
+            y: touch.clientY - pan.y
+          };
+          setIsPanning(true);
+        }
+      }
+    } else if (e.touches.length === 2) {
+      // Two fingers - prepare for pinch zoom
+      e.preventDefault();
+      touchPinchDistanceRef.current = getTouchDistance(e.touches);
+      touchStartRef.current = null; // Stop panning when pinching
+      setIsPanning(false);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 1 && touchStartRef.current) {
+      // Single touch pan
+      e.preventDefault();
+      const touch = e.touches[0];
+      setPan({
+        x: touch.clientX - touchStartRef.current.x,
+        y: touch.clientY - touchStartRef.current.y
+      });
+    } else if (e.touches.length === 2) {
+      // Two finger pinch zoom
+      e.preventDefault();
+      const currentDistance = getTouchDistance(e.touches);
+      
+      if (touchPinchDistanceRef.current > 0) {
+        const delta = (currentDistance - touchPinchDistanceRef.current) * 0.01;
+        const newZoom = Math.min(Math.max(0.1, zoom + delta), 3);
+        
+        // Zoom towards center of two fingers
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const centerX = (touch1.clientX + touch2.clientX) / 2;
+        const centerY = (touch1.clientY + touch2.clientY) / 2;
+        
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = centerX - rect.left;
+        const y = centerY - rect.top;
+        
+        const zoomPointX = (x - pan.x) / zoom;
+        const zoomPointY = (y - pan.y) / zoom;
+        
+        setPan({
+          x: x - zoomPointX * newZoom,
+          y: y - zoomPointY * newZoom
+        });
+        
+        setZoom(newZoom);
+        touchPinchDistanceRef.current = currentDistance;
+      }
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (e.touches.length === 0) {
+      // All fingers lifted
+      setIsPanning(false);
+      touchStartRef.current = null;
+      touchPinchDistanceRef.current = 0;
+    } else if (e.touches.length === 1) {
+      // One finger remains, restart single-touch pan
+      const touch = e.touches[0];
+      touchStartRef.current = {
+        x: touch.clientX - pan.x,
+        y: touch.clientY - pan.y
+      };
+      touchPinchDistanceRef.current = 0;
+    }
+  };
 
   // Pan handling - now works with just click and drag on canvas
   const handleCanvasMouseDown = (e) => {
@@ -574,6 +673,9 @@ const Canvas = ({
       onMouseDown={handleCanvasMouseDown}
       onMouseMove={handleCanvasMouseMove}
       onMouseUp={handleCanvasMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onMouseEnter={onCollapseSidebar}
       style={{ 
         cursor: isPanning ? 'grabbing' : 'grab'
