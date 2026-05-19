@@ -25,6 +25,7 @@ const GraphNode = ({
   const dragStartPos = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
+  const isConnectingRef = useRef(false); // Track connection state synchronously
   
   // Touch tracking for mobile tap detection
   const touchStartRef = useRef(null);
@@ -37,6 +38,11 @@ const GraphNode = ({
     zoomRef.current = zoom;
     panRef.current = pan;
   }, [zoom, pan]);
+
+  // Keep isConnectingRef in sync with isConnecting state
+  React.useEffect(() => {
+    isConnectingRef.current = isConnecting;
+  }, [isConnecting]);
 
   const handleMouseDown = (e) => {
     if (e.target.closest('.node-connection-point') || e.target.closest('.node-add-below-zone')) return;
@@ -77,6 +83,9 @@ const GraphNode = ({
       const x = node.position.x + 100;
       // For output: add the actual node height, for input: use node.position.y
       const y = isOutput ? node.position.y + nodeHeight : node.position.y;
+      
+      // Immediately set the ref before state updates
+      isConnectingRef.current = true;
       
       if (isOutput) {
         // Starting a new connection from output
@@ -121,6 +130,16 @@ const GraphNode = ({
   };
 
   const handleTouchEnd = (e) => {
+    // Handle connection completion first
+    if (isConnectingRef.current) {
+      setIsConnecting(false);
+      isConnectingRef.current = false;
+      // Don't select the node when completing a connection
+      touchStartRef.current = null;
+      // Connection completion will be handled by Canvas handleTouchEnd
+      return;
+    }
+    
     if (!touchStartRef.current || !isMobileRef.current) return;
     
     e.stopPropagation();
@@ -153,6 +172,19 @@ const GraphNode = ({
   };
 
   const handleTouchMove = (e) => {
+    // Handle connection dragging on touch
+    if (isConnectingRef.current) {
+      e.preventDefault();
+      const touch = e.touches && e.touches.length > 0 ? e.touches[0] : null;
+      if (!touch) return;
+      
+      const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
+      const canvasX = (touch.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+      const canvasY = (touch.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
+      onConnectionDrag({ x: canvasX, y: canvasY });
+      return;
+    }
+    
     if (!isDragging) return;
     
     // Handle touch move for dragging
@@ -208,9 +240,13 @@ const GraphNode = ({
     if (isDragging || isConnecting) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd, { passive: false });
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
       };
     }
   }, [isDragging, isConnecting]);
