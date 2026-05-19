@@ -64,37 +64,41 @@
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .node-type-button {
-    width: 50px;
-    height: 50px;
+    width: auto;
+    height: 40px;
+    flex-direction: row;
     flex-shrink: 0;
     gap: 8px;
+    padding: 0 8px;
   }
 
   .sidebar-expanded .node-type-button {
-    width: 50px;
-    padding: 0;
-    justify-content: center;
+    width: auto;
+    padding: 0 8px;
+    justify-content: flex-start;
   }
 
   .sidebar-node-type-icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 
   .sidebar-expanded .sidebar-node-type-icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 
   .node-type-label {
-    display: none;
+    display: block;
+    font-size: 12px;
+    white-space: nowrap;
   }
 
   .sidebar-expanded .node-type-label {
-    display: none;
+    display: block;
   }
 
   .node-type-button:hover {
-    transform: translateY(-4px);
+    transform: translateX(4px);
   }
 }

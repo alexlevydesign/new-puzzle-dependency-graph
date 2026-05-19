@@ -281,7 +281,6 @@ const GraphNode = ({
           }>
         <img src={config.icon} alt={config.label} className="node-icon" />
         </div>
-        <span className="node-type-label">{config.label}</span>
       </div>
       
       <div className="node-content">
