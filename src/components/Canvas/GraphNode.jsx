@@ -209,6 +209,42 @@ const GraphNode = ({
     }
   };
 
+  const handleConnectionPointTouchStart = (e, isOutput) => {
+    e.stopPropagation();
+    
+    // Get actual node height from DOM (this will be scaled by zoom)
+    const rect = nodeRef.current.getBoundingClientRect();
+    // Divide by zoom to get the actual canvas space height
+    const nodeHeight = rect.height / zoomRef.current;
+    
+    // Use node position directly (already in canvas coordinates)
+    // Add half the node width (100px) to center the connection point horizontally
+    const x = node.position.x + 100;
+    // For output: add the actual node height, for input: use node.position.y
+    const y = isOutput ? node.position.y + nodeHeight : node.position.y;
+    
+    if (isOutput) {
+      // Starting a new connection from output
+      setIsConnecting(true);
+      onConnectionStart(node.id, { x, y });
+    } else {
+      // Starting from input to disconnect
+      onConnectionStart(node.id, { x, y }, true); // true indicates this is from input (for disconnect)
+    }
+  };
+
+  const handleConnectionPointTouchEnd = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Always reset isConnecting when touch ends on a connection point
+    setIsConnecting(false);
+    
+    // If we're NOT the source node (global isConnecting from another node),
+    // then this is the target node
+    onConnectionEnd(node.id);
+  };
+
   const handleConnectionPointMouseUp = (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -272,6 +308,8 @@ const GraphNode = ({
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}
         onMouseLeave={handleConnectionPointMouseLeave}
+        onTouchStart={(e) => handleConnectionPointTouchStart(e, false)}
+        onTouchEnd={handleConnectionPointTouchEnd}
       />
       
       <div className="node-header">
@@ -304,6 +342,8 @@ const GraphNode = ({
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}
         onMouseLeave={handleConnectionPointMouseLeave}
+        onTouchStart={(e) => handleConnectionPointTouchStart(e, true)}
+        onTouchEnd={handleConnectionPointTouchEnd}
       />
 
       {!hasOutgoingConnection && (

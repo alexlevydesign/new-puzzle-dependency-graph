@@ -297,13 +297,23 @@ const Canvas = ({
 
   const handleTouchMove = (e) => {
     if (e.touches.length === 1 && touchStartRef.current) {
-      // Single touch pan
-      e.preventDefault();
-      const touch = e.touches[0];
-      setPan({
-        x: touch.clientX - touchStartRef.current.x,
-        y: touch.clientY - touchStartRef.current.y
-      });
+      // Handle connection dragging on touch
+      if (connectionStart) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvasRef.current.getBoundingClientRect();
+        const canvasX = (touch.clientX - rect.left - pan.x) / zoom;
+        const canvasY = (touch.clientY - rect.top - pan.y) / zoom;
+        handleConnectionDrag({ x: canvasX, y: canvasY });
+      } else {
+        // Single touch pan
+        e.preventDefault();
+        const touch = e.touches[0];
+        setPan({
+          x: touch.clientX - touchStartRef.current.x,
+          y: touch.clientY - touchStartRef.current.y
+        });
+      }
     } else if (e.touches.length === 2) {
       // Two finger pinch zoom
       e.preventDefault();
