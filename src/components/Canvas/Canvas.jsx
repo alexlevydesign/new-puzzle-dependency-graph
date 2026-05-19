@@ -215,9 +215,16 @@ const Canvas = ({
     };
 
     canvas.addEventListener('wheel', preventDefaultZoom, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+      // Prevent Safari's default touch behaviors (tab opening, etc)
+      if (e.touches.length >= 2 || (e.touches.length === 1 && touchStartRef.current)) {
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     return () => {
       canvas.removeEventListener('wheel', preventDefaultZoom);
+      canvas.removeEventListener('touchmove', () => {});
     };
   }, []);
 
@@ -678,7 +685,8 @@ const Canvas = ({
       onTouchEnd={handleTouchEnd}
       onMouseEnter={onCollapseSidebar}
       style={{ 
-        cursor: isPanning ? 'grabbing' : 'grab'
+        cursor: isPanning ? 'grabbing' : 'grab',
+        touchAction: 'none'
       }}
     >
       <div 
