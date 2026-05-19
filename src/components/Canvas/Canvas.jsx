@@ -348,6 +348,34 @@ const Canvas = ({
   };
 
   const handleTouchEnd = (e) => {
+    // Handle connection completion first (if we're making a connection)
+    if (connectionStart && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      
+      // Check if the release point is over a connection point
+      const elementsAtEnd = document.elementsFromPoint(touch.clientX, touch.clientY);
+      let targetNodeId = null;
+      
+      // Look for a connection point in the elements at this position
+      for (const elem of elementsAtEnd) {
+        if (elem.classList.contains('node-connection-point')) {
+          // Find the parent node and get its data-node-id or extract from closest .graph-node
+          const nodeElem = elem.closest('.graph-node');
+          if (nodeElem && nodeElem.dataset.nodeId) {
+            targetNodeId = nodeElem.dataset.nodeId;
+            break;
+          }
+        }
+      }
+      
+      // Complete the connection if we found a target, otherwise cancel
+      if (targetNodeId) {
+        onConnectionCreate(connectionStart.nodeId, targetNodeId);
+      }
+      setConnectionStart(null);
+      setTempConnectionEnd(null);
+    }
+    
     if (e.touches.length === 0) {
       // All fingers lifted
       setIsPanning(false);
