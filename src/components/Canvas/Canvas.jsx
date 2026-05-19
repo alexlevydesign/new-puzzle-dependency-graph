@@ -143,6 +143,7 @@ const Canvas = ({
     const y = (e.clientY - rect.top - pan.y) / zoom - 50;
 
     // Check if dropping between two connected nodes
+    const isMobile = window.innerWidth <= 768;
     if (insertionPreview) {
       const newNode = onAddNode(nodeType, { x, y });
       
@@ -152,10 +153,10 @@ const Canvas = ({
         insertionPreview.to
       );
       setInsertionPreview(null);
-      onNodeSelect(newNode);
+      if (!isMobile) onNodeSelect(newNode);
     } else {
       const newNode = onAddNode(nodeType, { x, y });
-      onNodeSelect(newNode);
+      if (!isMobile) onNodeSelect(newNode);
     }
   };
 
