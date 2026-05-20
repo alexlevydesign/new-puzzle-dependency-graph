@@ -338,6 +338,7 @@ const GraphNode = ({
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}
         onMouseLeave={handleConnectionPointMouseLeave}
+        onTouchEnd={handleConnectionPointMouseUp}
       />
       
       <div className="node-header">
@@ -370,6 +371,7 @@ const GraphNode = ({
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}
         onMouseLeave={handleConnectionPointMouseLeave}
+        onTouchEnd={handleConnectionPointMouseUp}
       />
 
       {!hasOutgoingConnection && (
