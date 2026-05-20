@@ -364,12 +364,6 @@ const Canvas = ({
       setIsPanning(false);
       touchStartRef.current = null;
       touchPinchDistanceRef.current = 0;
-      
-      // If there's an active connection, cancel it (user tapped elsewhere)
-      if (connectionStart) {
-        setConnectionStart(null);
-        setTempConnectionEnd(null);
-      }
     } else if (e.touches.length === 1) {
       // One finger remains, restart single-touch pan
       const touch = e.touches[0];
