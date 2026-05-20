@@ -179,33 +179,27 @@ padding-top: 16px;
 /* Mobile responsive connection points */
 @media (max-width: 768px) {
   .node-connection-point {
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
     border-width: 3px;
-    box-shadow: 0 0 0 16px transparent;
   }
 
   .node-connection-point.input {
-    top: -14px;
+    top: -10px;
   }
 
   .node-connection-point.input:hover,
   .node-connection-point.input.hover {
-    top: -16px;
+    top: -12px;
   }
 
   .node-connection-point.output {
-    bottom: -14px;
+    bottom: -10px;
   }
 
   .node-connection-point.output:hover,
   .node-connection-point.output.hover {
-    bottom: -16px;
-  }
-
-  /* Pulsing connectors on mobile */
-  .node-connection-point.input.pulsing {
-    animation: radarPulse 2s ease-out infinite;
+    bottom: -12px;
   }
 }
 
@@ -251,26 +245,6 @@ padding-top: 16px;
   box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
   padding: 0 0 2px 0; /* Add slight bottom padding to optically center the plus sign */
   line-height: 1;
-}
-
-@keyframes radarPulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.6);
-  }
-  100% {
-    box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
-  }
-}
-
-.node-connection-point.input.pulsing {
-  animation: radarPulse 2s ease-out infinite;
-  pointer-events: auto;
-}
-
-.node-connection-point.output.active {
-  background-color: #2196F3;
-  border-color: #2196F3;
-  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.3);
 }
 
 .node-add-below-button:hover {

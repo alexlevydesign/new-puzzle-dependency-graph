@@ -16,9 +16,7 @@ const GraphNode = ({
   onConnectionDrag,
   onConnectionEnd,
   onShowAddNodeMenu,
-  hasOutgoingConnection,
-  isConnectionActive,
-  isConnectionSource
+  hasOutgoingConnection
 }) => {
   const nodeRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -72,21 +70,30 @@ const GraphNode = ({
     
     // Handle connection point touches
     if (connectionPointElement) {
-      e.preventDefault();
       e.stopPropagation();
       const isOutput = connectionPointElement.classList.contains('output');
       
-      // Store touch info for tap detection
-      if (e.touches && e.touches.length > 0) {
-        const touch = e.touches[0];
-        touchStartRef.current = {
-          x: touch.clientX,
-          y: touch.clientY,
-          time: Date.now(),
-          isConnectorTouch: true,
-          isOutput: isOutput,
-          nodeId: node.id
-        };
+      // Get actual node height from DOM (this will be scaled by zoom)
+      const rect = nodeRef.current.getBoundingClientRect();
+      // Divide by zoom to get the actual canvas space height
+      const nodeHeight = rect.height / zoomRef.current;
+      
+      // Use node position directly (already in canvas coordinates)
+      // Add half the node width (100px) to center the connection point horizontally
+      const x = node.position.x + 100;
+      // For output: add the actual node height, for input: use node.position.y
+      const y = isOutput ? node.position.y + nodeHeight : node.position.y;
+      
+      // Immediately set the ref before state updates
+      isConnectingRef.current = true;
+      
+      if (isOutput) {
+        // Starting a new connection from output
+        setIsConnecting(true);
+        onConnectionStart(node.id, { x, y });
+      } else {
+        // Starting from input to disconnect
+        onConnectionStart(node.id, { x, y }, true); // true indicates this is from input (for disconnect)
       }
       return;
     }
@@ -104,8 +111,7 @@ const GraphNode = ({
       touchStartRef.current = {
         x: touch.clientX,
         y: touch.clientY,
-        time: Date.now(),
-        isConnectorTouch: false
+        time: Date.now()
       };
       
       // Start dragging without selecting yet
@@ -124,7 +130,17 @@ const GraphNode = ({
   };
 
   const handleTouchEnd = (e) => {
-    if (!touchStartRef.current) return;
+    // Handle connection completion first
+    if (isConnectingRef.current) {
+      setIsConnecting(false);
+      isConnectingRef.current = false;
+      // Don't select the node when completing a connection
+      touchStartRef.current = null;
+      // Connection completion will be handled by Canvas handleTouchEnd
+      return;
+    }
+    
+    if (!touchStartRef.current || !isMobileRef.current) return;
     
     e.stopPropagation();
     
@@ -145,31 +161,8 @@ const GraphNode = ({
     // If the touch moved less than 10px and lasted less than 300ms, treat it as a tap
     const isTap = distance < 10 && (touchEnd.time - touchStartRef.current.time) < 300;
     
-    // Handle connector taps
-    if (touchStartRef.current.isConnectorTouch && isTap) {
-      const isOutput = touchStartRef.current.isOutput;
-      if (isOutput) {
-        // Tapping output connector - initiate connection
-        setIsConnecting(true);
-        isConnectingRef.current = true;
-        // Get actual node height from DOM
-        const rect = nodeRef.current.getBoundingClientRect();
-        const nodeHeight = rect.height / zoomRef.current;
-        const x = node.position.x + 100;
-        const y = node.position.y + nodeHeight;
-        onConnectionStart(node.id, { x, y });
-      } else if (!isOutput && isConnectionActive && !isConnectionSource) {
-        // Tapping input connector while a connection is active (but not on the source node) - complete connection
-        setIsConnecting(false);
-        isConnectingRef.current = false;
-        onConnectionEnd(node.id);
-      }
-      touchStartRef.current = null;
-      return;
-    }
-    
     // Only select the node if this was a tap (not a drag)
-    if (isTap && !touchStartRef.current.isConnectorTouch) {
+    if (isTap) {
       onSelect(node);
     }
     
@@ -179,9 +172,16 @@ const GraphNode = ({
   };
 
   const handleTouchMove = (e) => {
-    // Don't do any dragging while connecting on mobile
+    // Handle connection dragging on touch
     if (isConnectingRef.current) {
       e.preventDefault();
+      const touch = e.touches && e.touches.length > 0 ? e.touches[0] : null;
+      if (!touch) return;
+      
+      const canvasRect = nodeRef.current.parentElement.parentElement.getBoundingClientRect();
+      const canvasX = (touch.clientX - canvasRect.left - panRef.current.x) / zoomRef.current;
+      const canvasY = (touch.clientY - canvasRect.top - panRef.current.y) / zoomRef.current;
+      onConnectionDrag({ x: canvasX, y: canvasY });
       return;
     }
     
@@ -333,7 +333,7 @@ const GraphNode = ({
       onTouchEnd={handleTouchEnd}
     >
       <div
-        className={`node-connection-point input ${isConnectionActive && !isConnectionSource ? 'pulsing' : ''}`}
+        className="node-connection-point input"
         onMouseDown={(e) => handleConnectionPointMouseDown(e, false)}
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}
@@ -365,7 +365,7 @@ const GraphNode = ({
       </div>
 
       <div
-        className={`node-connection-point output ${isConnectionSource ? 'active' : ''}`}
+        className="node-connection-point output"
         onMouseDown={(e) => handleConnectionPointMouseDown(e, true)}
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}
