@@ -198,6 +198,12 @@ const Canvas = ({
   };
 
   const handleCanvasClick = (e) => {
+    // Cancel connection if clicking on canvas
+    if (connectionStart) {
+      setConnectionStart(null);
+      setTempConnectionEnd(null);
+    }
+    
     if (e.target === canvasRef.current || e.target === contentRef.current) {
       onNodeSelect(null);
     }
@@ -262,9 +268,18 @@ const Canvas = ({
 
   // Touch handlers for mobile navigation
   const handleTouchStart = (e) => {
+    // Cancel connection if user starts a new touch gesture
+    if (connectionStart && e.touches.length > 1) {
+      setConnectionStart(null);
+      setTempConnectionEnd(null);
+    }
+    
     if (e.touches.length === 1) {
-      // Single touch - start panning
+      // Single touch - start panning (only if no connection in progress)
       const touch = e.touches[0];
+      
+      // Don't pan if there's an active connection
+      if (connectionStart) return;
       
       // Detect double tap to reset zoom
       const now = Date.now();
@@ -297,23 +312,19 @@ const Canvas = ({
 
   const handleTouchMove = (e) => {
     if (e.touches.length === 1 && touchStartRef.current) {
-      // Handle connection dragging on touch
+      // Don't do anything while connecting on mobile - pure tap-based
       if (connectionStart) {
         e.preventDefault();
-        const touch = e.touches[0];
-        const rect = canvasRef.current.getBoundingClientRect();
-        const canvasX = (touch.clientX - rect.left - pan.x) / zoom;
-        const canvasY = (touch.clientY - rect.top - pan.y) / zoom;
-        handleConnectionDrag({ x: canvasX, y: canvasY });
-      } else {
-        // Single touch pan
-        e.preventDefault();
-        const touch = e.touches[0];
-        setPan({
-          x: touch.clientX - touchStartRef.current.x,
-          y: touch.clientY - touchStartRef.current.y
-        });
+        return;
       }
+      
+      // Single touch pan
+      e.preventDefault();
+      const touch = e.touches[0];
+      setPan({
+        x: touch.clientX - touchStartRef.current.x,
+        y: touch.clientY - touchStartRef.current.y
+      });
     } else if (e.touches.length === 2) {
       // Two finger pinch zoom
       e.preventDefault();
@@ -348,39 +359,17 @@ const Canvas = ({
   };
 
   const handleTouchEnd = (e) => {
-    // Handle connection completion first (if we're making a connection)
-    if (connectionStart && e.changedTouches.length > 0) {
-      const touch = e.changedTouches[0];
-      
-      // Check if the release point is over a connection point
-      const elementsAtEnd = document.elementsFromPoint(touch.clientX, touch.clientY);
-      let targetNodeId = null;
-      
-      // Look for a connection point in the elements at this position
-      for (const elem of elementsAtEnd) {
-        if (elem.classList.contains('node-connection-point')) {
-          // Find the parent node and get its data-node-id or extract from closest .graph-node
-          const nodeElem = elem.closest('.graph-node');
-          if (nodeElem && nodeElem.dataset.nodeId) {
-            targetNodeId = nodeElem.dataset.nodeId;
-            break;
-          }
-        }
-      }
-      
-      // Complete the connection if we found a target, otherwise cancel
-      if (targetNodeId) {
-        onConnectionCreate(connectionStart.nodeId, targetNodeId);
-      }
-      setConnectionStart(null);
-      setTempConnectionEnd(null);
-    }
-    
     if (e.touches.length === 0) {
       // All fingers lifted
       setIsPanning(false);
       touchStartRef.current = null;
       touchPinchDistanceRef.current = 0;
+      
+      // If there's an active connection, cancel it (user tapped elsewhere)
+      if (connectionStart) {
+        setConnectionStart(null);
+        setTempConnectionEnd(null);
+      }
     } else if (e.touches.length === 1) {
       // One finger remains, restart single-touch pan
       const touch = e.touches[0];
@@ -601,12 +590,16 @@ const Canvas = ({
   };
 
   const handleConnectionEnd = (targetNodeId, releasePosition = null) => {
+    // Check if this is a valid connection (not the same node)
+    const isMobile = window.innerWidth <= 768;
+    
     if (connectionStart && targetNodeId && connectionStart.nodeId !== targetNodeId) {
+      // Valid connection
       onConnectionCreate(connectionStart.nodeId, targetNodeId);
       setConnectionStart(null);
       setTempConnectionEnd(null);
-    } else if (connectionStart && !targetNodeId) {
-      // Connection was released without connecting to a node
+    } else if (connectionStart && !targetNodeId && !isMobile) {
+      // Desktop: Connection was released without connecting to a node
       // Show context menu at the release position
       const position = releasePosition || tempConnectionEnd;
       if (position) {
