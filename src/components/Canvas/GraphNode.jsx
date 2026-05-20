@@ -157,8 +157,10 @@ const GraphNode = ({
         const x = node.position.x + 100;
         const y = node.position.y + nodeHeight;
         onConnectionStart(node.id, { x, y });
-      } else {
-        // Tapping input connector while connecting - complete connection
+      } else if (isConnectionActive) {
+        // Tapping input connector while a connection is active - complete connection
+        setIsConnecting(false);
+        isConnectingRef.current = false;
         onConnectionEnd(node.id);
       }
       touchStartRef.current = null;

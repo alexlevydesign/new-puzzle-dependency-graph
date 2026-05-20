@@ -179,32 +179,33 @@ padding-top: 16px;
 /* Mobile responsive connection points */
 @media (max-width: 768px) {
   .node-connection-point {
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
     border-width: 3px;
+    box-shadow: 0 0 0 16px transparent;
   }
 
   .node-connection-point.input {
-    top: -10px;
+    top: -14px;
   }
 
   .node-connection-point.input:hover,
   .node-connection-point.input.hover {
-    top: -12px;
+    top: -16px;
   }
 
   .node-connection-point.output {
-    bottom: -10px;
+    bottom: -14px;
   }
 
   .node-connection-point.output:hover,
   .node-connection-point.output.hover {
-    bottom: -12px;
+    bottom: -16px;
   }
 
   /* Pulsing connectors on mobile */
   .node-connection-point.input.pulsing {
-    animation: pulse 1.5s ease-in-out infinite;
+    animation: radarPulse 2s ease-out infinite;
   }
 }
 
