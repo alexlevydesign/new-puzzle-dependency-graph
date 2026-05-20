@@ -16,7 +16,9 @@ const GraphNode = ({
   onConnectionDrag,
   onConnectionEnd,
   onShowAddNodeMenu,
-  hasOutgoingConnection
+  hasOutgoingConnection,
+  isConnectionActive,
+  isConnectionSource
 }) => {
   const nodeRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -333,7 +335,7 @@ const GraphNode = ({
       onTouchEnd={handleTouchEnd}
     >
       <div
-        className="node-connection-point input"
+        className={`node-connection-point input ${isConnectionActive && !isConnectionSource ? 'pulsing' : ''}`}
         onMouseDown={(e) => handleConnectionPointMouseDown(e, false)}
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}
@@ -365,7 +367,7 @@ const GraphNode = ({
       </div>
 
       <div
-        className="node-connection-point output"
+        className={`node-connection-point output ${isConnectionSource ? 'active' : ''}`}
         onMouseDown={(e) => handleConnectionPointMouseDown(e, true)}
         onMouseUp={handleConnectionPointMouseUp}
         onMouseEnter={handleConnectionPointMouseEnter}

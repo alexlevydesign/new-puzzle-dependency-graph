@@ -781,6 +781,10 @@ const Canvas = ({
       {nodes.map(node => {
         // Check if this node has any outgoing connections
         const hasOutgoingConnection = connections.some(conn => conn.from === node.id);
+        // Check if a connection is being made
+        const isConnectionActive = connectionStart !== null;
+        // Check if this node is the source of the active connection
+        const isConnectionSource = connectionStart?.nodeId === node.id;
         
         return (
           <GraphNode
@@ -799,6 +803,8 @@ const Canvas = ({
             onConnectionEnd={handleConnectionEnd}
             onShowAddNodeMenu={handleShowAddNodeMenu}
             hasOutgoingConnection={hasOutgoingConnection}
+            isConnectionActive={isConnectionActive}
+            isConnectionSource={isConnectionSource}
           />
         );
       })}
