@@ -352,17 +352,38 @@ const Canvas = ({
     if (connectionStart && e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       
+      console.log('Touch end - connectionStart:', connectionStart);
+      
       // Check if the release point is over a connection point
       const elementsAtEnd = document.elementsFromPoint(touch.clientX, touch.clientY);
       let targetNodeId = null;
       
+      console.log('Touch end - looking for connection point at:', touch.clientX, touch.clientY);
+      console.log('Elements at end:', elementsAtEnd.map(el => ({ 
+        class: el.className, 
+        tag: el.tagName,
+        hasConnectionPoint: el.classList.contains('node-connection-point'),
+        isInput: el.classList.contains('input'),
+        isOutput: el.classList.contains('output'),
+        nodeId: el.closest('.graph-node')?.dataset.nodeId 
+      })));
+      
       // Look for a connection point in the elements at this position
       for (const elem of elementsAtEnd) {
         if (elem.classList.contains('node-connection-point')) {
+          // Only allow connecting to INPUT connectors (must be input, not output)
+          const isInputConnector = elem.classList.contains('input');
+          if (!isInputConnector) {
+            console.log('Rejecting connection to output connector');
+            continue;
+          }
+          
           // Find the parent node and get its data-node-id or extract from closest .graph-node
           const nodeElem = elem.closest('.graph-node');
           if (nodeElem && nodeElem.dataset.nodeId) {
             targetNodeId = nodeElem.dataset.nodeId;
+            console.log('Found target node:', targetNodeId, 'connector type: input');
+            console.log('Connection start was from: output');
             break;
           }
         }
@@ -370,10 +391,19 @@ const Canvas = ({
       
       // Complete the connection if we found a target, otherwise cancel
       if (targetNodeId) {
-        onConnectionCreate(connectionStart.nodeId, targetNodeId);
+        // Convert to number to match connectionStart.nodeId type
+        const targetId = Number(targetNodeId);
+        if (connectionStart.nodeId === targetId) {
+          console.log('Cannot connect node to itself');
+        } else {
+          console.log('Creating connection via handleConnectionEnd:', connectionStart.nodeId, '→', targetId);
+          handleConnectionEnd(targetId);
+        }
+      } else {
+        console.log('No target found, canceling connection');
+        setConnectionStart(null);
+        setTempConnectionEnd(null);
       }
-      setConnectionStart(null);
-      setTempConnectionEnd(null);
     }
     
     if (e.touches.length === 0) {
@@ -579,16 +609,19 @@ const Canvas = ({
   };
 
   const handleConnectionStart = (nodeId, position, isFromInput = false) => {
+    console.log('handleConnectionStart called:', { nodeId, isFromInput });
     // If dragging from input, just remove the connection (no reconnection)
     if (isFromInput) {
       const incomingConn = connections.find(c => c.to === nodeId);
       if (incomingConn) {
+        console.log('Removing incoming connection:', incomingConn);
         onConnectionRemove(incomingConn.from, incomingConn.to);
       }
       // Don't set connectionStart - this prevents showing temp line
       setConnectionStart(null);
       setTempConnectionEnd(null);
     } else {
+      console.log('Setting connectionStart:', { nodeId, position });
       setConnectionStart({ nodeId, position });
     }
   };
@@ -601,11 +634,16 @@ const Canvas = ({
   };
 
   const handleConnectionEnd = (targetNodeId, releasePosition = null) => {
+    console.log('handleConnectionEnd called with:', { targetNodeId, connectionStart, releasePosition });
+    
     if (connectionStart && targetNodeId && connectionStart.nodeId !== targetNodeId) {
+      console.log('Condition met, calling onConnectionCreate');
       onConnectionCreate(connectionStart.nodeId, targetNodeId);
+      console.log('onConnectionCreate completed');
       setConnectionStart(null);
       setTempConnectionEnd(null);
     } else if (connectionStart && !targetNodeId) {
+      console.log('No target, showing context menu');
       // Connection was released without connecting to a node
       // Show context menu at the release position
       const position = releasePosition || tempConnectionEnd;
