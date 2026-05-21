@@ -16,7 +16,8 @@ const GraphNode = ({
   onConnectionDrag,
   onConnectionEnd,
   onShowAddNodeMenu,
-  hasOutgoingConnection
+  hasOutgoingConnection,
+  isInConnectingRange
 }) => {
   const nodeRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -320,7 +321,7 @@ const GraphNode = ({
     <div
       ref={nodeRef}
       data-node-id={node.id}
-      className={`graph-node ${node.type} ${isSelected ? 'selected' : ''} ${isCommandPressed ? 'disconnect-mode' : ''} ${isConnecting ? 'connecting' : ''}`}
+      className={`graph-node ${node.type} ${isSelected ? 'selected' : ''} ${isCommandPressed ? 'disconnect-mode' : ''} ${isConnecting ? 'connecting' : ''} ${isInConnectingRange ? 'connection-target-in-range' : ''}`}
       style={{
         left: node.position.x,
         top: node.position.y,
