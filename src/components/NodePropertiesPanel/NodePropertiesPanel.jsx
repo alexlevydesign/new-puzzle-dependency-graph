@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './NodePropertiesPanel.css';
 import { NODE_CONFIG, NODE_TYPES } from '../../constants/nodeTypes.jsx';
 
@@ -16,6 +16,8 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
   const [prevNode, setPrevNode] = useState(null);
   const [selectedUseItem, setSelectedUseItem] = useState('');
   const [removeAfterUse, setRemoveAfterUse] = useState(false);
+  const panelRef = useRef(null);
+  const touchStartRef = useRef(null);
 
   // ALL hooks must be called unconditionally, BEFORE any early returns
   useEffect(() => {
@@ -474,8 +476,39 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
     }
   };
 
+  const handleTouchStart = (e) => {
+    touchStartRef.current = {
+      y: e.touches[0].clientY,
+      x: e.touches[0].clientX
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStartRef.current) return;
+    
+    const touchEnd = {
+      y: e.changedTouches[0].clientY,
+      x: e.changedTouches[0].clientX
+    };
+    
+    const deltaY = touchStartRef.current.y - touchEnd.y;
+    const deltaX = Math.abs(touchStartRef.current.x - touchEnd.x);
+    
+    // Swipe up: positive deltaY (finger moved up), minimal horizontal movement
+    if (deltaY > 100 && deltaX < 50) {
+      onNodeSelect(null); // Close the panel
+    }
+    
+    touchStartRef.current = null;
+  };
+
   return (
-    <aside className={`node-properties-panel ${isClosing ? 'closing' : ''}`}>
+    <aside 
+      ref={panelRef}
+      className={`node-properties-panel ${isClosing ? 'closing' : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="panel-header">
         <div className="panel-header-left">
           <h3>Node Properties</h3>
