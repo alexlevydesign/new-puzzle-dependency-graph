@@ -469,6 +469,7 @@ function App() {
           nodes={nodes}
           onUpdateNode={updateNode}
           onDeleteNode={deleteNode}
+          onNodeSelect={setSelectedNode}
           connections={connections}
         />
       </div>

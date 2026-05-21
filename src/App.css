@@ -136,6 +136,7 @@
   display: flex;
   overflow: hidden;
   position: relative;
+  flex-direction: row;
 }
 
 .no-space {
@@ -150,4 +151,25 @@
   background-color: #e0e0e0;
   width: 1px;
   height: 100%;
+}
+
+/* Mobile responsive design */
+@media (max-width: 768px) {
+  .app-content {
+    flex-direction: column;
+  }
+
+  .app-header {
+    height: 60px;
+    padding: 0 16px;
+  }
+
+  .app-title {
+    font-size: 20px;
+  }
+
+  .header-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
 }

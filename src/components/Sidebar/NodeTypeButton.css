@@ -60,3 +60,45 @@
   display: unset;
   transition: opacity 0.3s ease, max-width 0.3s ease;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .node-type-button {
+    width: auto;
+    height: 40px;
+    flex-direction: row;
+    flex-shrink: 0;
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .sidebar-expanded .node-type-button {
+    width: auto;
+    padding: 0 8px;
+    justify-content: flex-start;
+  }
+
+  .sidebar-node-type-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .sidebar-expanded .sidebar-node-type-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .node-type-label {
+    display: block;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .sidebar-expanded .node-type-label {
+    display: block;
+  }
+
+  .node-type-button:hover {
+    transform: translateX(4px);
+  }
+}

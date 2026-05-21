@@ -8,6 +8,7 @@
   background-size: 20px 20px;
   overflow: hidden;
   user-select: none;
+  touch-action: none;
 }
 
 .canvas-content {
@@ -146,4 +147,31 @@
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .canvas {
+    flex: 1;
+    position: relative;
+    margin-bottom: 60px;
+  }
+
+  .zoom-controls {
+    bottom: 80px;
+    right: 12px;
+    padding: 6px;
+    gap: 4px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .zoom-level {
+    font-size: 11px;
+    min-width: 35px;
+  }
 }

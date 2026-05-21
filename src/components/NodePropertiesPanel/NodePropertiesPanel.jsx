@@ -6,7 +6,7 @@ import Menu from '../Menu/Menu.jsx';
 import Button from '../Button/Button.jsx';
 import MenuItem from '../Menu/MenuItem.jsx';
 
-const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, nodes }) => {
+const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, connections, nodes }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [newItem, setNewItem] = useState('');
@@ -475,14 +475,26 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, connections, no
   };
 
   return (
-    <aside className={`node-properties-panel ${isClosing ? 'closing' : ''}`}>
+    <aside 
+      className={`node-properties-panel ${isClosing ? 'closing' : ''}`}
+    >
       <div className="panel-header">
-        <h3>Node Properties</h3>
+        <div className="panel-header-left">
+          <h3>Node Properties</h3>
+          <Button 
+            onClick={handleDelete}
+            title="Delete node"
+            icon="delete"
+            variant="ghost"
+            className="panel-delete-button"
+            />
+        </div>
         <Button 
-          onClick={handleDelete}
-          title="Delete node"
-          icon="delete"
+          onClick={() => onNodeSelect(null)}
+          title="Close panel"
+          icon="close"
           variant="ghost"
+          className="panel-close-button"
           />
       </div>
 
