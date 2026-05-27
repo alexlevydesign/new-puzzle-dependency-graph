@@ -113,16 +113,16 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
 
     const visiting = new Set();
 
-    // Compute items available through each parent path independently, then intersect
+    // Compute items available through each parent path, returning both items and removed items
     const itemsForNode = (nodeId, memo = new Map()) => {
       if (memo.has(nodeId)) return memo.get(nodeId);
-      if (visiting.has(nodeId)) return new Set(); // break cycles
+      if (visiting.has(nodeId)) return { items: new Set(), removed: new Set() }; // break cycles
       visiting.add(nodeId);
 
       const current = nodes.find(n => n.id === nodeId);
       if (!current) {
         visiting.delete(nodeId);
-        return new Set();
+        return { items: new Set(), removed: new Set() };
       }
 
       // Start with items produced by this node (if GET_ITEM)
@@ -141,6 +141,8 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
       if (parents.length === 0) {
         // No parents - just return items from this node
         let result = items;
+        let removed = new Set();
+        
         if (current.type === NODE_TYPES.USE_ITEM) {
           // A USE_ITEM's items array represents items the user explicitly selected/deselected
           if (Array.isArray(current.items) && current.items.length > 0) {
@@ -158,16 +160,23 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
           // If an item is marked for removal after use, remove it from downstream
           if (current.removeAfterUse && current.selectedUseItem) {
             result.delete(current.selectedUseItem);
+            removed.add(current.selectedUseItem);
           }
         }
-        memo.set(nodeId, result);
+        
+        const resultObj = { items: result, removed };
+        memo.set(nodeId, resultObj);
         visiting.delete(nodeId);
-        return result;
+        return resultObj;
       }
 
       // For each parent, compute items available through that path
-      const pathItemSets = parents.map(pid => {
-        const parentItems = itemsForNode(pid, memo);
+      const pathResults = [];
+      
+      parents.forEach(pid => {
+        const parentResult = itemsForNode(pid, memo);
+        const parentItems = parentResult.items;
+        const parentRemoved = parentResult.removed;
         
         // Merge with items from this node
         const combined = new Set(parentItems);
@@ -179,6 +188,8 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
 
         // Apply USE_ITEM filtering only if current is a USE_ITEM node
         let result = combined;
+        let removed = new Set(parentRemoved);
+        
         if (current.type === NODE_TYPES.USE_ITEM) {
           // A USE_ITEM's items array represents items the user explicitly selected/deselected
           // We should only filter out items the user explicitly turned OFF
@@ -198,27 +209,41 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
             result = combined;
           }
           
-          // If an item is marked for removal after use, remove it from downstream
+          // If an item is marked for removal after use, track it as removed
           if (current.removeAfterUse && current.selectedUseItem) {
             result.delete(current.selectedUseItem);
+            removed.add(current.selectedUseItem);
           }
         }
 
-        return result;
+        pathResults.push({ items: result, removed });
       });
 
-      // For convergence nodes (multiple parents), items from ANY path are available (union logic)
-      let finalResult = pathItemSets.length > 1
-        ? new Set(pathItemSets.flatMap(set => Array.from(set)))
-        : (pathItemSets[0] || new Set());
+      // For convergence nodes: union items from all paths, excluding items removed on ANY path
+      let finalItems = new Set();
+      let finalRemoved = new Set();
+      
+      if (pathResults.length > 1) {
+        // Union items from all paths
+        pathResults.forEach(pathResult => {
+          pathResult.items.forEach(item => finalItems.add(item));
+          pathResult.removed.forEach(item => finalRemoved.add(item));
+        });
+        // Exclude any items that were removed on any path
+        finalItems = new Set(Array.from(finalItems).filter(item => !finalRemoved.has(item)));
+      } else if (pathResults.length === 1) {
+        finalItems = pathResults[0].items;
+        finalRemoved = pathResults[0].removed;
+      }
 
-      memo.set(nodeId, finalResult);
+      const resultObj = { items: finalItems, removed: finalRemoved };
+      memo.set(nodeId, resultObj);
       visiting.delete(nodeId);
-      return finalResult;
+      return resultObj;
     };
 
-    const finalSet = itemsForNode(displayNode.id);
-    return Array.from(finalSet).sort((a, b) => a.localeCompare(b));
+    const finalResult = itemsForNode(displayNode.id);
+    return Array.from(finalResult.items).sort((a, b) => a.localeCompare(b));
   };
 
   // Compute upstream items for UI on USE_ITEM nodes (apply filtering and removal from upstream USE_ITEM nodes)
@@ -230,13 +255,13 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
 
     const itemsFromParents = (nodeId, memo = new Map()) => {
       if (memo.has(nodeId)) return memo.get(nodeId);
-      if (visiting.has(nodeId)) return new Set();
+      if (visiting.has(nodeId)) return { items: new Set(), removed: new Set() };
       visiting.add(nodeId);
 
       const current = nodes.find(n => n.id === nodeId);
       if (!current) {
         visiting.delete(nodeId);
-        return new Set();
+        return { items: new Set(), removed: new Set() };
       }
 
       // Get parent nodes
@@ -252,7 +277,10 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
             if (i && i.toString().trim()) items.add(i.toString().trim());
           });
         }
+        
         let result = items;
+        let removed = new Set();
+        
         if (current.type === NODE_TYPES.USE_ITEM) {
           // A USE_ITEM's items array represents items the user explicitly selected/deselected
           if (Array.isArray(current.items) && current.items.length > 0) {
@@ -270,16 +298,23 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
           // If an item is marked for removal after use, remove it from downstream
           if (current.removeAfterUse && current.selectedUseItem) {
             result.delete(current.selectedUseItem);
+            removed.add(current.selectedUseItem);
           }
         }
-        memo.set(nodeId, result);
+        
+        const resultObj = { items: result, removed };
+        memo.set(nodeId, resultObj);
         visiting.delete(nodeId);
-        return result;
+        return resultObj;
       }
 
       // For each parent, compute items available through that path
-      const pathItemSets = parents.map(pid => {
-        const parentItems = itemsFromParents(pid, memo);
+      const pathResults = [];
+      
+      parents.forEach(pid => {
+        const parentResult = itemsFromParents(pid, memo);
+        const parentItems = parentResult.items;
+        const parentRemoved = parentResult.removed;
         
         // Merge with items from this node
         const combined = new Set(parentItems);
@@ -291,6 +326,8 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
 
         // Apply USE_ITEM filtering only if current is a USE_ITEM node
         let result = combined;
+        let removed = new Set(parentRemoved);
+        
         if (current.type === NODE_TYPES.USE_ITEM) {
           // A USE_ITEM's items array represents items the user explicitly selected/deselected
           // We should only filter out items the user explicitly turned OFF
@@ -307,23 +344,37 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
             result = combined;
           }
           
-          // If an item is marked for removal after use, remove it from downstream
+          // If an item is marked for removal after use, track it as removed
           if (current.removeAfterUse && current.selectedUseItem) {
             result.delete(current.selectedUseItem);
+            removed.add(current.selectedUseItem);
           }
         }
 
-        return result;
+        pathResults.push({ items: result, removed });
       });
 
-      // For convergence nodes (multiple parents), items from ANY path are available (union logic)
-      let finalResult = pathItemSets.length > 1
-        ? new Set(pathItemSets.flatMap(set => Array.from(set)))
-        : (pathItemSets[0] || new Set());
+      // For convergence nodes: union items from all paths, excluding items removed on ANY path
+      let finalItems = new Set();
+      let finalRemoved = new Set();
+      
+      if (pathResults.length > 1) {
+        // Union items from all paths
+        pathResults.forEach(pathResult => {
+          pathResult.items.forEach(item => finalItems.add(item));
+          pathResult.removed.forEach(item => finalRemoved.add(item));
+        });
+        // Exclude any items that were removed on any path
+        finalItems = new Set(Array.from(finalItems).filter(item => !finalRemoved.has(item)));
+      } else if (pathResults.length === 1) {
+        finalItems = pathResults[0].items;
+        finalRemoved = pathResults[0].removed;
+      }
 
-      memo.set(nodeId, finalResult);
+      const resultObj = { items: finalItems, removed: finalRemoved };
+      memo.set(nodeId, resultObj);
       visiting.delete(nodeId);
-      return finalResult;
+      return resultObj;
     };
 
     // For the displayNode's upstream, compute from its parents (not including displayNode itself)
@@ -335,14 +386,25 @@ const NodePropertiesPanel = ({ node, onUpdateNode, onDeleteNode, onNodeSelect, c
       return [];
     }
 
-    // For convergence nodes, compute each parent path and intersect
-    const pathItemSets = parents.map(pid => itemsFromParents(pid));
+    // For convergence nodes, compute each parent path and union (items from any parent path)
+    const pathResults = parents.map(pid => itemsFromParents(pid));
     
-    const upstreamSet = parents.length > 1
-      ? new Set(pathItemSets.flatMap(set => Array.from(set)))
-      : pathItemSets[0];
+    let upstreamItems = new Set();
+    let upstreamRemoved = new Set();
+    
+    if (parents.length > 1) {
+      // Union items and removed items from all paths
+      pathResults.forEach(pathResult => {
+        pathResult.items.forEach(item => upstreamItems.add(item));
+        pathResult.removed.forEach(item => upstreamRemoved.add(item));
+      });
+      // Exclude items that were removed on any path
+      upstreamItems = new Set(Array.from(upstreamItems).filter(item => !upstreamRemoved.has(item)));
+    } else {
+      upstreamItems = pathResults[0].items;
+    }
 
-    return Array.from(upstreamSet).sort((a, b) => a.localeCompare(b));
+    return Array.from(upstreamItems).sort((a, b) => a.localeCompare(b));
   };
 
   const availableItems = getAvailableItems();
