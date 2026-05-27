@@ -10,6 +10,9 @@ import MenuItem from './components/Menu/MenuItem.jsx';
 
 import Button from './components/Button/Button.jsx';
 
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
 // Default nodes for first-time users
 const getDefaultNodes = () => [
   {
@@ -121,6 +124,8 @@ function App() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const isUndoRedoAction = useRef(false);
   const historyTimeoutRef = useRef(null);
+  const appContentRef = useRef(null);
+  const canvasComponentRef = useRef(null);
 
   // Save to localStorage whenever state changes
   useEffect(() => {
@@ -354,6 +359,68 @@ function App() {
     input.click();
   }, []);
 
+  const exportPDF = useCallback(async () => {
+    const canvasContent = canvasComponentRef.current?.contentRef;
+    if (!canvasContent) {
+      alert('Unable to capture canvas. Please try again.');
+      return;
+    }
+    
+    try {
+      // Capture the canvas area as an image
+      const capturedCanvas = await html2canvas(canvasContent, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        allowTaint: true
+      });
+      
+      // Get the captured image
+      const imgData = capturedCanvas.toDataURL('image/png');
+      const imgWidth = capturedCanvas.width;
+      const imgHeight = capturedCanvas.height;
+      
+      // Calculate aspect ratio
+      const aspectRatio = imgHeight / imgWidth;
+      
+      // Determine best page orientation
+      const orientation = aspectRatio > 1 ? 'portrait' : 'landscape';
+      
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: orientation,
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calculate dimensions to fit content properly on page
+      const scaledWidth = pageWidth - 10; // 5mm margin on each side
+      const scaledHeight = (imgHeight * scaledWidth) / imgWidth;
+      
+      let heightLeft = scaledHeight;
+      let position = 5; // 5mm top margin
+      
+      // Add image to PDF (handle multiple pages if needed)
+      while (heightLeft > 0) {
+        pdf.addImage(imgData, 'PNG', 5, position, scaledWidth, scaledHeight);
+        heightLeft -= (pageHeight - 10); // Account for margins
+        position = 5 - (pageHeight - 10);
+        if (heightLeft > 0) {
+          pdf.addPage();
+        }
+      }
+      
+      // Download the PDF
+      pdf.save(`puzzflow-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Error exporting PDF. Please try again.');
+    }
+  }, []);
+
   const clearCanvas = useCallback(() => {
     if (nodes.length === 0 && connections.length === 0) {
       return;
@@ -419,16 +486,22 @@ function App() {
           
           >
             <MenuItem 
-            label="Import"
+            label="Import JSON"
             icon="upload"
             onClick={importData}
             title="Import project"
             />
             <MenuItem 
-            label="Export"
+            label="Export JSON"
             icon="download"
             onClick={exportData}
             title="Export project"
+            />
+            <MenuItem 
+              label="Export PDF"
+              icon="pdf"
+              onClick={exportPDF}
+              title="Export canvas as PDF"
             />
             <MenuItem 
               label="Reset board"
@@ -445,13 +518,14 @@ function App() {
           </Menu>
         </div>
       </header>
-      <div className="app-content">
+      <div className="app-content" ref={appContentRef}>
         <Sidebar 
           onNodeTypeSelect={addNode}
           isExpanded={isSidebarExpanded}
           onExpand={() => setIsSidebarExpanded(true)}
         />
         <Canvas
+          ref={canvasComponentRef}
           nodes={nodes}
           connections={connections}
           selectedNode={selectedNode}

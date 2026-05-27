@@ -1,11 +1,11 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import './Canvas.css';
 import GraphNode from './GraphNode.jsx';
 import ConnectionLine from './ConnectionLine.jsx';
 import AddNodeMenu from './AddNodeMenu.jsx';
 import { NODE_CONFIG, NODE_TYPES } from '../../constants/nodeTypes.jsx';
 
-const Canvas = ({
+const Canvas = forwardRef(({
   nodes,
   connections,
   selectedNode,
@@ -17,7 +17,7 @@ const Canvas = ({
   onConnectionRemove,
   onInsertNodeBetween,
   onCollapseSidebar
-}) => {
+}, ref) => {
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
   const contextMenuRef = useRef(null);
@@ -46,6 +46,11 @@ const Canvas = ({
   const touchStartRef = useRef(null);
   const lastTapTimeRef = useRef(0);
   const touchPinchDistanceRef = useRef(0);
+
+  // Expose contentRef through forwarded ref for PDF export
+  useImperativeHandle(ref, () => ({
+    contentRef: contentRef.current
+  }));
 
   // Track command key and space key
   useEffect(() => {
@@ -995,6 +1000,8 @@ const Canvas = ({
       )}
     </div>
   );
-};
+});
+
+Canvas.displayName = 'Canvas';
 
 export default Canvas;
