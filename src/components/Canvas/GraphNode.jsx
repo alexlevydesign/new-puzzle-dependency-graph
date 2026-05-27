@@ -17,12 +17,17 @@ const GraphNode = ({
   onConnectionEnd,
   onShowAddNodeMenu,
   hasOutgoingConnection,
-  isInConnectingRange
+  isInConnectingRange,
+  onNodeUpdate
 }) => {
   const nodeRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isHoveringBelow, setIsHoveringBelow] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingField, setEditingField] = useState(null); // 'title' or 'description'
+  const titleRef = useRef(null);
+  const descriptionRef = useRef(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
@@ -33,6 +38,55 @@ const GraphNode = ({
   const isMobileRef = useRef(false);
 
   const config = NODE_CONFIG[node.type];
+
+  const handleTitleDoubleClick = (e) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setEditingField('title');
+  };
+
+  const handleDescriptionDoubleClick = (e) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setEditingField('description');
+  };
+
+  const handleEditKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      saveEdits();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdits();
+    }
+  };
+
+  const saveEdits = () => {
+    if (editingField === 'title' && titleRef.current && onNodeUpdate) {
+      const newTitle = titleRef.current.textContent.trim();
+      if (newTitle !== node.title) {
+        onNodeUpdate(node.id, { title: newTitle });
+      }
+    } else if (editingField === 'description' && descriptionRef.current && onNodeUpdate) {
+      const newDescription = descriptionRef.current.textContent.trim();
+      if (newDescription !== node.description) {
+        onNodeUpdate(node.id, { description: newDescription });
+      }
+    }
+    setIsEditing(false);
+    setEditingField(null);
+  };
+
+  const cancelEdits = () => {
+    // Reset content to original
+    if (editingField === 'title' && titleRef.current) {
+      titleRef.current.textContent = node.title || '';
+    } else if (editingField === 'description' && descriptionRef.current) {
+      descriptionRef.current.textContent = node.description || '';
+    }
+    setIsEditing(false);
+    setEditingField(null);
+  };
 
   // Update refs when zoom or pan changes
   React.useEffect(() => {
@@ -45,7 +99,40 @@ const GraphNode = ({
     isConnectingRef.current = isConnecting;
   }, [isConnecting]);
 
+  // Focus on edit field when entering edit mode
+  React.useEffect(() => {
+    if (isEditing) {
+      const targetRef = editingField === 'title' ? titleRef : descriptionRef;
+      if (targetRef.current) {
+        targetRef.current.focus();
+        // Select all text
+        const range = document.createRange();
+        range.selectNodeContents(targetRef.current);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  }, [isEditing, editingField]);
+
+  // Handle clicks outside the node to save edits
+  React.useEffect(() => {
+    if (!isEditing) return;
+
+    const handleDocumentClick = (e) => {
+      if (nodeRef.current && !nodeRef.current.contains(e.target)) {
+        saveEdits();
+      }
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, [isEditing, editingField, node.title, node.description]);
+
   const handleMouseDown = (e) => {
+    // Don't allow dragging while editing
+    if (isEditing) return;
+    
     if (e.target.closest('.node-connection-point') || e.target.closest('.node-add-below-zone')) return;
     
     e.stopPropagation();
@@ -352,9 +439,27 @@ const GraphNode = ({
       
       <div className="node-content">
         <div className="node-type-label-above">{config.label}</div>
-        <div className="node-title">{node.title || config.defaultTitle}</div>
+        <div 
+          ref={titleRef}
+          className="node-title" 
+          contentEditable={isEditing && editingField === 'title'}
+          onDoubleClick={handleTitleDoubleClick}
+          onKeyDown={isEditing && editingField === 'title' ? handleEditKeyDown : undefined}
+          suppressContentEditableWarning
+        >
+          {node.title || config.defaultTitle}
+        </div>
         {node.description && (
-          <div className="node-description">{node.description}</div>
+          <div 
+            ref={descriptionRef}
+            className="node-description"
+            contentEditable={isEditing && editingField === 'description'}
+            onDoubleClick={handleDescriptionDoubleClick}
+            onKeyDown={isEditing && editingField === 'description' ? handleEditKeyDown : undefined}
+            suppressContentEditableWarning
+          >
+            {node.description}
+          </div>
         )}
         {node.type === NODE_TYPES.GET_ITEM && node.items && node.items.length > 0 && (
           <div className="node-items">
