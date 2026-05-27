@@ -419,13 +419,13 @@ function App() {
           
           >
             <MenuItem 
-            label="Import"
+            label="Import project"
             icon="upload"
             onClick={importData}
             title="Import project"
             />
             <MenuItem 
-            label="Export"
+            label="Export project"
             icon="download"
             onClick={exportData}
             title="Export project"
