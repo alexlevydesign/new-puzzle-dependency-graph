@@ -21,6 +21,8 @@ const Canvas = ({
   const canvasRef = useRef(null);
   const contentRef = useRef(null);
   const contextMenuRef = useRef(null);
+  const draggedNodeRef = useRef(null); // Track dragged node with ref for reliable access in callbacks
+  const insertionPreviewRef = useRef(null); // Track insertion preview with ref for reliable access at drop time
   const [draggedNode, setDraggedNode] = useState(null);
   const [connectionStart, setConnectionStart] = useState(null);
   const [tempConnectionEnd, setTempConnectionEnd] = useState(null);
@@ -167,8 +169,9 @@ const Canvas = ({
 
     // Check if hovering over a connection line
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // Convert screen coordinates to canvas coordinates
+    const canvasX = (e.clientX - rect.left - pan.x) / zoom;
+    const canvasY = (e.clientY - rect.top - pan.y) / zoom;
 
     let hoveredConnection = null;
     for (const conn of connections) {
@@ -176,12 +179,31 @@ const Canvas = ({
       const toNode = nodes.find(n => n.id === conn.to);
       
       if (fromNode && toNode) {
-        const distance = distanceToLine(
-          x, y,
-          fromNode.position.x + 100,
-          fromNode.position.y + 50,
-          toNode.position.x + 100,
-          toNode.position.y + 50
+        // Get actual node heights from DOM to match ConnectionLine rendering
+        const fromNodeElement = document.querySelector(`[data-node-id="${fromNode.id}"]`);
+        const toNodeElement = document.querySelector(`[data-node-id="${toNode.id}"]`);
+        
+        const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
+        const toNodeHeight = toNodeElement ? toNodeElement.offsetHeight : 100;
+        
+        // Calculate cubic bezier control points using actual node heights
+        // These must match what ConnectionLine.jsx renders
+        const startX = fromNode.position.x + 100;
+        const startY = fromNode.position.y + fromNodeHeight; // Bottom of from node
+        const endX = toNode.position.x + 100;
+        const endY = toNode.position.y; // Top of to node
+        
+        const deltaY = endY - startY;
+        const controlPointOffset = Math.max(Math.abs(deltaY) * 0.5, 50);
+        const controlPoint1Y = startY + controlPointOffset;
+        const controlPoint2Y = endY - controlPointOffset;
+        
+        const distance = distanceToCubicBezier(
+          canvasX, canvasY,
+          startX, startY,
+          endX, endY,
+          controlPoint1Y,
+          controlPoint2Y
         );
 
         if (distance < 20) {
@@ -467,10 +489,21 @@ const Canvas = ({
       incomingConns.forEach(conn => onConnectionRemove(conn.from, conn.to));
     }
     setDraggedNode(node);
+    draggedNodeRef.current = node; // Keep ref in sync
   };
 
   const handleNodeDrag = (node, position) => {
     onNodeMove(node.id, { position });
+    
+    // Check if this node has any existing connections
+    const hasConnections = connections.some(conn => conn.from === node.id || conn.to === node.id);
+    
+    // If node has connections, don't show insertion preview
+    if (hasConnections) {
+      setInsertionPreview(null);
+      insertionPreviewRef.current = null;
+      return;
+    }
     
     // Check if dragging over a connection line
     const nodeCenterX = position.x + 100;
@@ -485,17 +518,35 @@ const Canvas = ({
       const toNode = nodes.find(n => n.id === conn.to);
       
       if (fromNode && toNode) {
-        // Get actual node heights
+        // Get actual node heights from DOM
         const fromNodeElement = document.querySelector(`[data-node-id="${fromNode.id}"]`);
-        const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
+        const toNodeElement = document.querySelector(`[data-node-id="${toNode.id}"]`);
         
-        const distance = distanceToLine(
+        const fromNodeHeight = fromNodeElement ? fromNodeElement.offsetHeight : 100;
+        const toNodeHeight = toNodeElement ? toNodeElement.offsetHeight : 100;
+        
+        // Calculate cubic bezier control points using actual node heights
+        // These must match what ConnectionLine.jsx renders
+        const startX = fromNode.position.x + 100;
+        const startY = fromNode.position.y + fromNodeHeight; // Bottom of from node
+        const endX = toNode.position.x + 100;
+        const endY = toNode.position.y; // Top of to node
+        
+        const deltaY = endY - startY;
+        const controlPointOffset = Math.max(Math.abs(deltaY) * 0.5, 50);
+        const controlPoint1Y = startY + controlPointOffset;
+        const controlPoint2Y = endY - controlPointOffset;
+        
+        // Use cubic bezier distance calculation
+        const distance = distanceToCubicBezier(
           nodeCenterX,
           nodeCenterY,
-          fromNode.position.x + 100,
-          fromNode.position.y + fromNodeHeight,
-          toNode.position.x + 100,
-          toNode.position.y
+          startX,
+          startY,
+          endX,
+          endY,
+          controlPoint1Y,
+          controlPoint2Y
         );
 
         if (distance < 30) {
@@ -506,19 +557,31 @@ const Canvas = ({
     }
     
     setInsertionPreview(hoveredConnection);
+    insertionPreviewRef.current = hoveredConnection; // Keep ref in sync
   };
 
   const handleNodeDragEnd = () => {
     // If we're hovering over a connection, insert the node between
-    if (insertionPreview && draggedNode) {
-      onInsertNodeBetween(
-        draggedNode.id,
-        insertionPreview.from,
-        insertionPreview.to
-      );
+    // Use refs to ensure we have correct values even if state hasn't updated
+    const previewToInsert = insertionPreviewRef.current;
+    const nodeToInsert = draggedNodeRef.current;
+    
+    if (previewToInsert && nodeToInsert) {
+      // Check if node has any existing connections - if so, don't allow insertion
+      const hasConnections = connections.some(conn => conn.from === nodeToInsert.id || conn.to === nodeToInsert.id);
+      
+      if (!hasConnections) {
+        onInsertNodeBetween(
+          nodeToInsert.id,
+          previewToInsert.from,
+          previewToInsert.to
+        );
+      }
     }
     setDraggedNode(null);
+    draggedNodeRef.current = null;
     setInsertionPreview(null);
+    insertionPreviewRef.current = null;
   };
 
   const handleAddNodeBelow = (sourceNode, nodeType) => {
@@ -749,6 +812,39 @@ const Canvas = ({
     const dx = px - xx;
     const dy = py - yy;
     return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const distanceToCubicBezier = (px, py, x1, y1, x2, y2, cx1y, cx2y) => {
+    // Sample points along the cubic bezier curve and find minimum distance
+    // curve formula: B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
+    // where P0=(x1,y1), P1=(x1,cx1y), P2=(x2,cx2y), P3=(x2,y2)
+    
+    let minDistance = Infinity;
+    const steps = 20; // Sample 20 points along the curve
+    
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const mt3 = mt2 * mt;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      
+      // Calculate point on bezier curve
+      const bx = mt3 * x1 + 3 * mt2 * t * x1 + 3 * mt * t2 * x2 + t3 * x2;
+      const by = mt3 * y1 + 3 * mt2 * t * cx1y + 3 * mt * t2 * cx2y + t3 * y2;
+      
+      // Distance from point to curve sample
+      const dx = px - bx;
+      const dy = py - by;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+      }
+    }
+    
+    return minDistance;
   };
 
   return (
