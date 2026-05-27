@@ -270,3 +270,17 @@ padding-top: 16px;
 .graph-node.connection-target-in-range {
   animation: radarPulse 2s ease-out infinite;
 }
+
+.node-title,
+.node-description {
+  outline: none;
+}
+
+/* .node-title[contenteditable="true"],
+.node-description[contenteditable="true"] {
+  background-color: rgba(33, 150, 243, 0.1);
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  outline: none;
+} */

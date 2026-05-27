@@ -844,6 +844,7 @@ const Canvas = ({
             onShowAddNodeMenu={handleShowAddNodeMenu}
             hasOutgoingConnection={hasOutgoingConnection}
             isInConnectingRange={nodeInConnectingRange === node.id}
+            onNodeUpdate={onNodeMove}
           />
         );
       })}
