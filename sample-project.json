@@ -1,0 +1,425 @@
+{
+  "nodes": [
+    {
+      "id": 8,
+      "type": "PLAYER_ACTION",
+      "title": "Go down ladder",
+      "description": "",
+      "position": {
+        "x": 409.18484439537065,
+        "y": 168.76039749723907
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 9,
+      "type": "GET_ITEM",
+      "title": "Paperclip",
+      "description": "",
+      "position": {
+        "x": 405.2867286222547,
+        "y": 319.6335521203937
+      },
+      "items": [
+        "Paperclip"
+      ],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 10,
+      "type": "USE_ITEM",
+      "title": "Use paperclip to unlock door",
+      "description": "",
+      "position": {
+        "x": 408.38550484603104,
+        "y": 468.4243446611861
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": [],
+      "selectedUseItem": "Paperclip",
+      "removeAfterUse": true
+    },
+    {
+      "id": 11,
+      "type": "GOAL",
+      "title": "Escape stasis room",
+      "description": "",
+      "position": {
+        "x": 448.2374176391204,
+        "y": 621.1623725646552
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 12,
+      "type": "GOAL",
+      "title": "Take train",
+      "description": "",
+      "position": {
+        "x": 383.8576030326366,
+        "y": 2421.8831654220467
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 13,
+      "type": "PLAYER_ACTION",
+      "title": "Enter train",
+      "description": "",
+      "position": {
+        "x": 385.8696036498515,
+        "y": 2273.326862258445
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 14,
+      "type": "PLAYER_ACTION",
+      "title": "Provide Power to automatic train doors",
+      "description": "",
+      "position": {
+        "x": 91.31991453654061,
+        "y": 1856.7117054075402
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 15,
+      "type": "PLAYER_ACTION",
+      "title": "Get past fingerprint scanner",
+      "description": "",
+      "position": {
+        "x": 518.335629363922,
+        "y": 2106.688459560588
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 16,
+      "type": "GET_ITEM",
+      "title": "Scotch tape",
+      "description": "",
+      "position": {
+        "x": 468.44076118162604,
+        "y": 1216.0730639566327
+      },
+      "items": [
+        "Scotch tape"
+      ],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 17,
+      "type": "PLAYER_ACTION",
+      "title": "Enter reception area",
+      "description": "",
+      "position": {
+        "x": 547.9483720266412,
+        "y": 767.5958342422496
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 20,
+      "type": "USE_ITEM",
+      "title": "Use scotch tape on nameplate to get fingerprint",
+      "description": "",
+      "position": {
+        "x": 727.0266142152317,
+        "y": 1489.907270858502
+      },
+      "items": [
+        "Paperclip"
+      ],
+      "tags": [],
+      "dependencies": [],
+      "selectedUseItem": "Scotch tape",
+      "removeAfterUse": true
+    },
+    {
+      "id": 22,
+      "type": "PLAYER_ACTION",
+      "title": "Tries reaching for nameplate, and Robert the Robot swats hand away",
+      "description": "",
+      "position": {
+        "x": 383.0414393938198,
+        "y": 1378.540515850632
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 23,
+      "type": "USE_ITEM",
+      "title": "Use fingerprint on scanner",
+      "description": "",
+      "position": {
+        "x": 533.1018157753252,
+        "y": 1936.7511181598204
+      },
+      "items": [
+        "Paperclip",
+        "Scotch tape"
+      ],
+      "tags": [],
+      "dependencies": [],
+      "selectedUseItem": "Tape with fingerprint",
+      "removeAfterUse": true
+    },
+    {
+      "id": 24,
+      "type": "GET_ITEM",
+      "title": "Tape with fingerprint",
+      "description": "",
+      "position": {
+        "x": 652.1568759904599,
+        "y": 1662.6498430215192
+      },
+      "items": [
+        "Tape with fingerprint"
+      ],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 26,
+      "type": "PLAYER_ACTION",
+      "title": "Turn on water cooler",
+      "description": "",
+      "position": {
+        "x": 915.061436860866,
+        "y": 1154.1762777454128
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 29,
+      "type": "USE_ITEM",
+      "title": "Use metal nameplate to connect broken wires",
+      "description": "",
+      "position": {
+        "x": 0.7855033949532526,
+        "y": 1652.3176570076027
+      },
+      "items": [
+        "Paperclip",
+        "Coathanger",
+        "Scotch tape",
+        "Tape with fingerprint",
+        "Metal nameplate"
+      ],
+      "tags": [],
+      "dependencies": [],
+      "selectedUseItem": "Metal nameplate",
+      "removeAfterUse": true
+    },
+    {
+      "id": 30,
+      "type": "USE_ITEM",
+      "title": "Use coathanger on hole in wall",
+      "description": "",
+      "position": {
+        "x": 0,
+        "y": 1433.532544648052
+      },
+      "items": [
+        "Paperclip",
+        "Coathanger"
+      ],
+      "tags": [],
+      "dependencies": [],
+      "selectedUseItem": "Coathanger",
+      "removeAfterUse": false
+    },
+    {
+      "id": 31,
+      "type": "GET_ITEM",
+      "title": "Coathanger",
+      "description": "",
+      "position": {
+        "x": 100.7888474291959,
+        "y": 1099.5344477075398
+      },
+      "items": [
+        "Coathanger"
+      ],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 32,
+      "type": "PLAYER_ACTION",
+      "title": "Go to train",
+      "description": "",
+      "position": {
+        "x": 0,
+        "y": 1268.3366428876873
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 33,
+      "type": "GET_ITEM",
+      "title": "Metal nameplate",
+      "description": "",
+      "position": {
+        "x": 524.0483193962325,
+        "y": 1800.5537033643539
+      },
+      "items": [
+        "Metal nameplate"
+      ],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 34,
+      "type": "PLAYER_ACTION",
+      "title": "Talk to Robert the Robot",
+      "description": "",
+      "position": {
+        "x": 919.3333333333335,
+        "y": 904.6666666666669
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    },
+    {
+      "id": 35,
+      "type": "PLAYER_ACTION",
+      "title": "Tell Robert the Robot there is a spill",
+      "description": "",
+      "position": {
+        "x": 908.5674462556107,
+        "y": 1359.6456413890858
+      },
+      "items": [],
+      "tags": [],
+      "dependencies": []
+    }
+  ],
+  "connections": [
+    {
+      "from": 8,
+      "to": 9
+    },
+    {
+      "from": 9,
+      "to": 10
+    },
+    {
+      "from": 10,
+      "to": 11
+    },
+    {
+      "from": 13,
+      "to": 12
+    },
+    {
+      "from": 15,
+      "to": 13
+    },
+    {
+      "from": 14,
+      "to": 13
+    },
+    {
+      "from": 11,
+      "to": 17
+    },
+    {
+      "from": 17,
+      "to": 16
+    },
+    {
+      "from": 16,
+      "to": 22
+    },
+    {
+      "from": 16,
+      "to": 20
+    },
+    {
+      "from": 20,
+      "to": 24
+    },
+    {
+      "from": 23,
+      "to": 15
+    },
+    {
+      "from": 29,
+      "to": 14
+    },
+    {
+      "from": 30,
+      "to": 29
+    },
+    {
+      "from": 17,
+      "to": 31
+    },
+    {
+      "from": 31,
+      "to": 32
+    },
+    {
+      "from": 32,
+      "to": 30
+    },
+    {
+      "from": 24,
+      "to": 33
+    },
+    {
+      "from": 33,
+      "to": 23
+    },
+    {
+      "from": 33,
+      "to": 29
+    },
+    {
+      "from": 17,
+      "to": 34
+    },
+    {
+      "from": 34,
+      "to": 26
+    },
+    {
+      "from": 26,
+      "to": 35
+    },
+    {
+      "from": 35,
+      "to": 20
+    }
+  ],
+  "nextNodeId": 36,
+  "version": "1.0",
+  "exportDate": "2026-06-05T23:17:39.465Z"
+}

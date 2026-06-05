@@ -20,11 +20,11 @@ const Sidebar = ({ onNodeTypeSelect, isExpanded, onExpand }) => {
           config={NODE_CONFIG[NODE_TYPES.PLAYER_ACTION]}
           onDragStart={handleDragStart}
         />
-        <NodeTypeButton
+        {/* <NodeTypeButton
           type={NODE_TYPES.CHARACTER_ACTION}
           config={NODE_CONFIG[NODE_TYPES.CHARACTER_ACTION]}
           onDragStart={handleDragStart}
-        />
+        /> */}
         <NodeTypeButton
           type={NODE_TYPES.GET_ITEM}
           config={NODE_CONFIG[NODE_TYPES.GET_ITEM]}
@@ -40,11 +40,11 @@ const Sidebar = ({ onNodeTypeSelect, isExpanded, onExpand }) => {
           config={NODE_CONFIG[NODE_TYPES.GOAL]}
           onDragStart={handleDragStart}
         />
-        <NodeTypeButton
+        {/* <NodeTypeButton
           type={NODE_TYPES.STORY_STATE}
           config={NODE_CONFIG[NODE_TYPES.STORY_STATE]}
           onDragStart={handleDragStart}
-        />
+        /> */}
       </div>
     </aside>
   );

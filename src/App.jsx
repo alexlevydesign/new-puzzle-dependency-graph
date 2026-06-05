@@ -44,32 +44,33 @@ const getDefaultNodes = () => [
     selectedUseItem: 'Key',
     removeAfterUse: false
   },
+  // {
+  //   id: 4,
+  //   type: NODE_TYPES.STORY_STATE,
+  //   title: 'Door is unlocked',
+  //   description: '',
+  //   position: { x: 300, y: 460 },
+  //   items: [],
+  //   tags: [],
+  //   dependencies: []
+  // },
+  // {
+  //   id: 5,
+  //   type: NODE_TYPES.CHARACTER_ACTION,
+  //   title: 'NPC congratulates player',
+  //   description: '',
+  //   position: { x: 100, y: 580 },
+  //   items: [],
+  //   tags: [],
+  //   dependencies: []
+  // },
   {
     id: 4,
-    type: NODE_TYPES.STORY_STATE,
-    title: 'Door is unlocked',
-    description: '',
-    position: { x: 300, y: 460 },
-    items: [],
-    tags: [],
-    dependencies: []
-  },
-  {
-    id: 5,
-    type: NODE_TYPES.CHARACTER_ACTION,
-    title: 'NPC congratulates player',
-    description: '',
-    position: { x: 100, y: 580 },
-    items: [],
-    tags: [],
-    dependencies: []
-  },
-  {
-    id: 6,
     type: NODE_TYPES.GOAL,
     title: 'Reach the treasure room',
     description: '',
-    position: { x: 500, y: 580 },
+    // position: { x: 500, y: 580 },
+      position: { x: 300, y: 460 },
     items: [],
     tags: [],
     dependencies: []
@@ -79,9 +80,9 @@ const getDefaultNodes = () => [
 const getDefaultConnections = () => [
   { from: 1, to: 2 },
   { from: 2, to: 3 },
-  { from: 3, to: 4 },
-  { from: 3, to: 5 },
-  { from: 4, to: 6 }
+  { from: 3, to: 4 }
+  // { from: 3, to: 5 },
+  // { from: 4, to: 6 }
 ];
 
 function App() {
